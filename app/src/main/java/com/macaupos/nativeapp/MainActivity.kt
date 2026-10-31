@@ -1,33 +1,38 @@
 package com.macaupos.nativeapp
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.macaupos.nativeapp.auth.AuthClient
 import com.macaupos.nativeapp.auth.IdentitiesResult
+import com.macaupos.nativeapp.auth.LoginIdentity
 import com.macaupos.nativeapp.auth.OfflineCredential
 import com.macaupos.nativeapp.data.DeviceStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
 import org.json.JSONObject
 
 /**
- * P0 登入骨架 —— 對齊 web 版 `/login` 嘅協議:
+ * P0 登入 —— 1:1 對齊 web `/login` 協議(docs/160 §11、docs/161、docs/162):
  *
- * 1. 打 8 位店舖帳號 → `POST /api/pos/login/identities`(5s 硬逾時)
- * 2. 連唔到 + 本機有憑證 → **離線模式**(本機 PBKDF2 驗證器,鎖定/TTL 同 web P4 一致)
- * 3. 店主 → `POST /api/ledger/login`;店員 → `POST /api/pos/login/identity`(P0 下半段接裝置綁定)
- * 4. 成功 → 本機派生驗證器存檔 → Home
+ * **裝置模式**(已綁定):`deviceId+deviceSecret` 查身份 → 揀卡 → PIN
+ *   - 店主卡 → `POST /api/ledger/login`(唔使帳號,server 由裝置帶出)
+ *   - 店員卡 → `POST /api/pos/login/identity`
+ * **帳號模式**(新機):打 8 位店舖帳號 → 查身份 → 店主 PIN 登入
+ *   → server `upsertBoundDevice` 寫入授權 → 回應 `deviceBinding` 存本機
+ *   ⇒ 之後呢部機永遠行裝置模式,店員唔使再打帳號。
  *
- * 裝置綁定(deviceId/deviceSecret)喺 P0 下半段接:店主首次登入後註冊裝置,
- * 之後呢部機行「裝置模式」,店員唔使再打 8 位帳號(同 web docs/161 一致)。
+ * **離線模式**:identities 連唔到(status 0)+ 本機有憑證 → 本機 PBKDF2 驗證器。
+ *   server 明確拒絕(撤銷/停用)一定照 server 講,唔會用快取放行。
  */
 class MainActivity : ComponentActivity() {
 
@@ -40,9 +45,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var btnLogin: Button
     private lateinit var txtStatus: TextView
     private lateinit var txtOfflineBadge: TextView
+    private lateinit var txtMode: TextView
 
-    /** 離線模式 flag:identities 查詢失敗且本機有憑證時開啟。 */
     private var offlineMode = false
+    /** 本輪登入用嘅身份(identities 查詢後揀定;離線模式由本機憑證清單揀)。 */
+    private var pendingIdentities: List<LoginIdentity> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,13 +62,16 @@ class MainActivity : ComponentActivity() {
         btnLogin = findViewById(R.id.btnLogin)
         txtStatus = findViewById(R.id.txtStatus)
         txtOfflineBadge = findViewById(R.id.txtOfflineBadge)
+        txtMode = findViewById(R.id.txtMode)
 
-        // 已綁定嘅機:帳號預填(裝置模式其實唔使帳號,呢度顯示返上次嘅店方便核對)
         if (deviceStore.isBound()) {
+            // 裝置模式:唔使帳號,鎖定帳號輸入
             inputAccount.setText(deviceStore.storeAccount)
-            txtStatus.text = "已綁定裝置:${deviceStore.storeName.ifBlank { deviceStore.storeId }}"
+            inputAccount.isEnabled = false
+            txtMode.text = "已綁定:${deviceStore.storeName.ifBlank { "店舖 " + deviceStore.storeId.take(8) }}"
+            if (offline.hasUsable()) txtOfflineBadge.visibility = View.VISIBLE
         } else if (offline.hasUsable()) {
-            txtOfflineBadge.visibility = android.view.View.VISIBLE
+            txtOfflineBadge.visibility = View.VISIBLE
             txtStatus.text = "本機有離線憑證(斷網都可以登入)"
         }
 
@@ -69,84 +79,177 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun doLogin() {
-        val account = inputAccount.text.toString().trim()
         val pin = inputPin.text.toString().trim()
-
         if (pin.length != 4) {
             txtStatus.text = "請輸入 4 位 PIN"
             return
         }
         hideKeyboard()
 
-        // ── 離線模式:identities 之前已確認連唔到,直接本機驗證 ──
         if (offlineMode) {
-            doOfflineVerify(account, pin)
+            doOfflineVerify(pin)
+            return
+        }
+
+        val account = inputAccount.text.toString().trim()
+        if (!deviceStore.isBound() && account.length != 8) {
+            txtStatus.text = "請輸入 8 位店舖帳號(首次使用)"
             return
         }
 
         txtStatus.text = "連接伺服器…"
         btnLogin.isEnabled = false
         lifecycleScope.launch {
+            val deviceId = withContext(Dispatchers.IO) { deviceStore.ensureDeviceId() }
             val result = withContext(Dispatchers.IO) {
-                auth.fetchIdentities(deviceStore.deviceId, deviceStore.deviceSecret, account)
+                auth.fetchIdentities(deviceId, deviceStore.deviceSecret, account)
             }
             btnLogin.isEnabled = true
+
             when (result) {
                 is IdentitiesResult.Ok -> {
-                    val payload = result.payload
-                    // P0 骨架:身份清單已確認,取 owner(或唯一身份)行登入。
-                    // P0 下半段改成身份卡選擇 UI(對齊 web /login 嘅 identity cards)。
-                    val identity = payload.identities.firstOrNull { it.kind == "owner" }
-                        ?: payload.identities.firstOrNull()
-                    if (identity == null) {
-                        txtStatus.text = "呢間店未有可用身份"
+                    result.payload.storeId?.let { deviceStore.storeId = it }
+                    result.payload.storeName?.let { deviceStore.storeName = it }
+                    val identities = result.payload.identities
+                    if (identities.isEmpty()) {
+                        txtStatus.text = "呢間店未有可用身份(店員未啟用?)"
                         return@launch
                     }
-                    if (account.isNotBlank()) deviceStore.storeAccount = account
-                    payload.storeId?.let { deviceStore.storeId = it }
-                    payload.storeName?.let { deviceStore.storeName = it }
-
-                    txtStatus.text = "登入中…"
-                    val resp = withContext(Dispatchers.IO) {
-                        runCatching {
-                            if (identity.kind == "owner") {
-                                auth.ownerLogin(account, pin, deviceStore.deviceId, deviceStore.deviceSecret)
-                            } else {
-                                auth.staffLogin(deviceStore.deviceId, deviceStore.deviceSecret, identity.staffNo ?: "", pin)
-                            }
-                        }.getOrElse { JSONObject().put("ok", false).put("error", "網絡錯誤:${it.message}").put("_httpStatus", 0) }
+                    if (identities.size == 1) {
+                        loginAs(identities.first(), pin)
+                    } else {
+                        // 身份卡選擇:對齊 web /login 嘅 identity cards
+                        promptIdentity(identities, pin)
                     }
-                    handleLoginResponse(resp, identity, pin)
                 }
 
-                is IdentitiesResult.Fail -> {
-                    if (result.offline && offline.hasUsable()) {
-                        offlineMode = true
-                        txtOfflineBadge.visibility = android.view.View.VISIBLE
-                        txtStatus.text = "連唔到伺服器 → 離線模式(請再打一次 PIN)"
-                    } else {
-                        txtStatus.text = if (result.offline) {
-                            "連唔到伺服器,而且本機冇離線憑證。首次使用必須聯網登入。"
-                        } else {
-                            "登入失敗:${result.error}${if (result.tableMissing) "(資料表未建立,請聯絡管理員)" else ""}"
-                        }
-                    }
+                is IdentitiesResult.Fail -> when {
+                    result.offline && offline.hasUsable() -> enterOfflineMode()
+                    result.offline ->
+                        txtStatus.text = "連唔到伺服器,而且本機冇離線憑證。首次使用必須聯網登入。"
+                    else -> txtStatus.text =
+                        "登入失敗:${result.error}${if (result.tableMissing) "(資料表未建立,請聯絡管理員)" else ""}"
                 }
             }
         }
     }
 
-    private fun doOfflineVerify(account: String, pin: String) {
-        val entries = offline.list().filter { !it.isExpired() }
-        val target = if (account.isBlank()) entries.firstOrNull() else {
-            entries.firstOrNull { it.kind == "owner" } ?: entries.firstOrNull()
+    /** 多過一個身份 → AlertDialog 揀卡(原生 dialog,API 23 可用)。 */
+    private fun promptIdentity(identities: List<LoginIdentity>, pin: String) {
+        val labels = identities.map { iden ->
+            val roleLabel = when (iden.role) {
+                "owner" -> "店主"
+                "manager" -> "店長"
+                else -> "收銀"
+            }
+            "$roleLabel · ${iden.name}" + (iden.staffNo?.let { "($it)" } ?: "")
+        }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("選擇身份")
+            .setItems(labels) { _, which -> loginAs(identities[which], pin) }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /** 按身份 kind 分流登入端點(web 版同一套):owner → ledger/login;staff → pos/login/identity。 */
+    private fun loginAs(identity: LoginIdentity, pin: String) {
+        txtStatus.text = "登入中…"
+        btnLogin.isEnabled = false
+        lifecycleScope.launch {
+            val resp = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (identity.kind == "owner") {
+                        // 帳號:綁定機上可留空(server 由裝置帶出店舖帳號)
+                        val account = if (deviceStore.isBound()) "" else inputAccount.text.toString().trim()
+                        auth.ownerLogin(account, pin, deviceStore.deviceId, deviceStore.deviceSecret)
+                    } else {
+                        auth.staffLogin(deviceStore.deviceId, deviceStore.deviceSecret, identity.staffNo ?: "", pin)
+                    }
+                }.getOrElse {
+                    JSONObject()
+                        .put("ok", false)
+                        .put("error", "網絡錯誤:${it.message ?: "unknown"}")
+                        .put("_httpStatus", 0)
+                }
+            }
+            btnLogin.isEnabled = true
+            handleLoginResponse(resp, identity, pin)
         }
-        if (target == null) {
-            txtStatus.text = "本機離線憑證已過期,請聯網登入一次"
-            offlineMode = false
+    }
+
+    private fun handleLoginResponse(resp: JSONObject, identity: LoginIdentity, pin: String) {
+        val ok = resp.optBoolean("ok", false)
+        if (!ok) {
+            val status = resp.optInt("_httpStatus", 0)
+            if (status == 0) {
+                if (offline.hasUsable()) {
+                    enterOfflineMode()
+                } else {
+                    txtStatus.text = "連唔到伺服器:首次使用必須聯網登入"
+                }
+                return
+            }
+            txtStatus.text = "登入失敗:${resp.optString("error", "未知錯誤")}" +
+                resp.optString("retryAfterSec", "").takeIf { it.isNotBlank() }?.let { "(等 ${it}s)" }.orEmpty()
             return
         }
-        val result = offline.verifyOffline(target.id, pin)
+
+        // ── 成功 ──
+        // ① 裝置綁定(只有 owner 登入回應先有;secret 空白 = 已有授權,保留本機現有)
+        val binding = resp.optJSONObject("deviceBinding")
+        if (binding != null) {
+            deviceStore.saveBinding(binding.optString("deviceId"), binding.optString("secret", ""))
+        }
+
+        // ② session 欄位映射:storeId ← session.merchantId;storeName ← session.name
+        val session = resp.optJSONObject("session") ?: JSONObject()
+        session.optString("merchantId", "").takeIf { it.isNotBlank() }?.let { deviceStore.storeId = it }
+        session.optString("name", "").takeIf { it.isNotBlank() && deviceStore.storeName.isBlank() }
+            ?.let { deviceStore.storeName = it }
+        deviceStore.storeAccount = session.optString("account", deviceStore.storeAccount)
+
+        // ③ 本機重新派生驗證器(唔存 server 嘅 pinHash —— dump 走部機只影響呢部機一個身份)
+        offline.save(identity, pin, session)
+
+        goHome(offline = false, name = identity.name)
+    }
+
+    // ---- 離線模式 ----
+
+    private fun enterOfflineMode() {
+        offlineMode = true
+        txtOfflineBadge.visibility = View.VISIBLE
+        val entries = offline.list().filter { !it.isExpired() }
+        pendingIdentities = entries.map {
+            LoginIdentity(kind = it.kind, id = it.id, name = it.name, staffNo = it.staffNo, role = it.role)
+        }
+        txtStatus.text = "連唔到伺服器 → 離線模式(請再打一次 PIN)"
+        if (pendingIdentities.size > 1) {
+            val labels = pendingIdentities.map { it.name }.toTypedArray()
+            AlertDialog.Builder(this)
+                .setTitle("離線登入 · 選擇身份")
+                .setItems(labels) { _, which ->
+                    txtStatus.text = "離線登入:${pendingIdentities[which].name}"
+                }
+                .setNegativeButton("取消", null)
+                .show()
+        } else if (pendingIdentities.isNotEmpty()) {
+            txtStatus.text = "離線登入:${pendingIdentities.first().name}"
+        }
+    }
+
+    private fun doOfflineVerify(pin: String) {
+        val entries = offline.list().filter { !it.isExpired() }
+        if (entries.isEmpty()) {
+            offlineMode = false
+            txtOfflineBadge.visibility = View.GONE
+            txtStatus.text = "本機離線憑證已過期,請聯網登入一次"
+            return
+        }
+        // 多身份時用「最近選定/唯一」嗰個;離線 PIN 逐身份驗證(防店員攞店主權限)
+        val chosen = entries.firstOrNull { it.name == txtStatus.text.toString().removePrefix("離線登入:") }
+            ?: entries.first()
+        val result = offline.verifyOffline(chosen.id, pin)
         if (result.ok && result.entry != null) {
             Toast.makeText(this, "離線登入:${result.entry.name}", Toast.LENGTH_SHORT).show()
             goHome(offline = true, name = result.entry.name)
@@ -159,40 +262,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun handleLoginResponse(resp: org.json.JSONObject, identity: com.macaupos.nativeapp.auth.LoginIdentity, pin: String) {
-        val ok = resp.optBoolean("ok", false)
-        if (!ok) {
-            val status = resp.optInt("_httpStatus", 0)
-            txtStatus.text = if (status == 0) {
-                // 連唔到 → 若本機有憑證可離線
-                if (offline.hasUsable()) {
-                    offlineMode = true
-                    txtOfflineBadge.visibility = android.view.View.VISIBLE
-                    "連唔到伺服器 → 離線模式(請再打一次 PIN)"
-                } else {
-                    "連唔到伺服器:首次使用必須聯網登入"
-                }
-            } else {
-                "登入失敗:${resp.optString("error", "未知錯誤")}"
-            }
-            return
-        }
-        // 成功:本機重新派生驗證器(唔存 server 嘅 pinHash)
-        offline.save(identity, pin, resp.optJSONObject("session") ?: org.json.JSONObject())
-        deviceStore.storeId = resp.optString("storeId", deviceStore.storeId)
-        deviceStore.storeName = resp.optString("storeName", deviceStore.storeName)
-        // server 可能喺登入成功時寫入裝置授權
-        resp.optString("deviceId", "").takeIf { it.isNotBlank() }?.let { deviceStore.deviceId = it }
-        resp.optString("deviceSecret", "").takeIf { it.isNotBlank() }?.let { deviceStore.deviceSecret = it }
-
-        goHome(offline = false, name = identity.name)
-    }
-
     private fun goHome(offline: Boolean, name: String) {
-        val i = Intent(this, HomeActivity::class.java)
-            .putExtra("operator", name)
-            .putExtra("offline", offline)
-        startActivity(i)
+        startActivity(
+            Intent(this, HomeActivity::class.java)
+                .putExtra("operator", name)
+                .putExtra("offline", offline)
+        )
         finish()
     }
 

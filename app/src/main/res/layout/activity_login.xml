@@ -26,6 +26,15 @@
         android:textColor="@color/text_secondary"
         android:textSize="14sp" />
 
+    <TextView
+        android:id="@+id/txtMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textColor="@color/brand_accent"
+        android:textSize="13sp" />
+
     <EditText
         android:id="@+id/inputAccount"
         android:layout_width="match_parent"

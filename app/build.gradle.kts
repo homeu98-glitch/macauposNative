@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("com.google.devtools.ksp")
 }
 
 // anon key 由 local.properties 讀(不入版控;web bundle 已公開同一把 key)
@@ -70,4 +71,9 @@ dependencies {
     implementation(files("libs/printer-lib-3.5.3.aar"))
     // Sunmi 內置打印機 AIDL
     implementation("com.sunmi:printerlibrary:1.0.24")
+
+    // Room(P1 offline-first 資料層;P0 先落地 sync_outbox 試金石,驗證 KSP+AGP9 內建 Kotlin)
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    ksp("androidx.room:room-compiler:2.8.4")
 }

@@ -2,6 +2,7 @@ package com.macaupos.nativeapp.data
 
 import android.content.Context
 import org.json.JSONObject
+import java.util.UUID
 
 /**
  * 裝置綁定狀態(deviceId + deviceSecret + storeId)。
@@ -38,6 +39,26 @@ class DeviceStore(context: Context) {
 
     /** 已初始化(有齊 deviceId + deviceSecret)= 裝置模式,唔使打帳號。 */
     fun isBound(): Boolean = deviceId.length >= 8 && deviceSecret.isNotBlank()
+
+    /**
+     * 取得(或首次產生)本機 deviceId —— 對應 web 版客戶端行為:deviceId 由
+     * **client 產生**,格式要符合 server 側 `/^[A-Za-z0-9._:-]{8,128}$/`。
+     * 店主首次登入時隨請求送上,server `upsertBoundDevice` 寫入授權,
+     * 之後回應嘅 `deviceBinding.secret` 存返呢度。
+     */
+    fun ensureDeviceId(): String {
+        val existing = deviceId
+        if (existing.length >= 8) return existing
+        val fresh = "native-" + UUID.randomUUID().toString()
+        deviceId = fresh
+        return fresh
+    }
+
+    /** 儲存裝置綁定(店主登入回應嘅 deviceBinding)。secret 空白 = 已有授權,保留現有。 */
+    fun saveBinding(deviceIdIn: String, secret: String?) {
+        if (deviceIdIn.isNotBlank()) deviceId = deviceIdIn
+        if (!secret.isNullOrBlank()) deviceSecret = secret
+    }
 
     fun clear() = store.clear()
 
