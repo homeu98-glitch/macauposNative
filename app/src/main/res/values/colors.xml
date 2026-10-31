@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 對齊 web POS 嘅紫漸變品牌色 -->
+    <color name="brand_bg">#0F1419</color>
+    <color name="brand_surface">#171C23</color>
+    <color name="brand_accent">#7F77DD</color>
+    <color name="brand_accent_deep">#534AB7</color>
+    <color name="text_primary">#F2F4F8</color>
+    <color name="text_secondary">#9AA3B2</color>
+    <color name="ok_green">#39B98A</color>
+    <color name="warn_red">#E25A5A</color>
+</resources>

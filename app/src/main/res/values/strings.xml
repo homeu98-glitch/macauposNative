@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Macau POS</string>
+    <string name="login_title">Macau POS</string>
+    <string name="login_hint_store">店舖 ID</string>
+    <string name="login_hint_operator">店員</string>
+    <string name="login_hint_pin">PIN</string>
+    <string name="login_btn">登入</string>
+    <string name="login_offline_badge">離線模式</string>
+    <string name="home_title">Macau POS</string>
+</resources>

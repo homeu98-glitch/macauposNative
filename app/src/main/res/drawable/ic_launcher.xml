@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- P0 佔位 icon:紫底 + 白單據線條(VectorDrawable,API 21+ 原生支援)。
+     之後沿用 macauPosAndroid 嘅品牌 logo(紫漸變 + 白單據 + 綠剔)再換。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#534AB7"
+        android:pathData="M10,10 h88 a8,8 0 0 1 8,8 v72 a8,8 0 0 1 -8,8 h-88 a8,8 0 0 1 -8,-8 v-72 a8,8 0 0 1 8,-8 z" />
+    <path
+        android:strokeColor="#F2F4F8"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:pathData="M34,28 h40 v52 l-7,-6 -6,6 -7,-6 -7,6 -6,-6 -7,6 z" />
+    <path
+        android:strokeColor="#F2F4F8"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:pathData="M42,40 h24 M42,48 h24 M42,56 h16" />
+    <path
+        android:strokeColor="#39B98A"
+        android:strokeWidth="5"
+        android:fillColor="#00000000"
+        android:pathData="M46,72 l6,6 l12,-14" />
+</vector>

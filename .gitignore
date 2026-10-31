@@ -1,0 +1,17 @@
+/.gradle/
+/.kotlin/
+/build/
+/app/build/
+/local.properties
+/.idea/
+*.iml
+.DS_Store
+/captures/
+*.apk
+*.ap_
+*.aab
+# 本機 build log
+build-log*.txt
+# WorkBuddy 工作數據
+/.workbuddy/
+/.workbuddy-ai/
