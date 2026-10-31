@@ -59,6 +59,7 @@ android {
 dependencies {
     implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
     // Supabase PostgREST / Realtime / Vercel API 全走 OkHttp
@@ -76,4 +77,7 @@ dependencies {
     implementation("androidx.room:room-runtime:2.8.4")
     implementation("androidx.room:room-ktx:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")
+
+    // Domain 層單元測試(對齊 web 版 .test.ts 嘅案例)
+    testImplementation("junit:junit:4.13.2")
 }

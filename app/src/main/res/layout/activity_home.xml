@@ -75,6 +75,43 @@
                 android:textSize="15sp" />
 
             <Button
+                android:id="@+id/btnOrder"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="16dp"
+                android:backgroundTint="@color/ok_green"
+                android:text="落單(餐牌)"
+                android:textColor="@color/brand_bg"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnSync"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:backgroundTint="@color/brand_surface"
+                android:text="立即同步"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/txtSyncState"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnPrinter"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:backgroundTint="@color/brand_surface"
+                android:text="打印機設置(LAN)"
+                android:textColor="@color/text_primary" />
+
+            <Button
                 android:id="@+id/btnSelfTest"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"

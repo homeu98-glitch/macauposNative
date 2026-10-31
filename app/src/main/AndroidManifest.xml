@@ -51,5 +51,10 @@
             <!-- USB_DEVICE_ATTACHED intent-filter 留返 P1 接打印機 wizard 嗰陣先加
                  (要配套 @xml/device_filter,而家未接 wizard 冇意義) -->
         </activity>
+
+        <activity
+            android:name=".OrderActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

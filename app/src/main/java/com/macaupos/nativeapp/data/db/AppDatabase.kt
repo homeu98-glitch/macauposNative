@@ -6,20 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 /**
- * App 資料庫 v1(P0 試金石:sync_outbox)。
+ * App 資料庫 v2(P1-A:pos_orders + bootstrap_cache + sync_outbox)。
  *
- * P1 會加:pos_orders、receipt_items、receipts、pos_shifts、pos_sessions、
- * pos_staff、pos_print_templates、merchants、pos_delivery_jobs 等(見計劃書 §5 P0 清單),
- * 每次加表 bump version + Migration。
+ * 之後每次加表 bump version + Migration;P1 期內表多變動快,先用
+ * fallbackToDestructiveMigration 開發(⚠️ 上線前要改返正式 Migration)。
  */
 @Database(
-    entities = [SyncOutboxEntity::class],
-    version = 1,
+    entities = [SyncOutboxEntity::class, PosOrderEntity::class, BootstrapCacheEntity::class],
+    version = 2,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun syncOutboxDao(): SyncOutboxDao
+    abstract fun posOrderDao(): PosOrderDao
+    abstract fun bootstrapCacheDao(): BootstrapCacheDao
 
     companion object {
         @Volatile
@@ -31,7 +32,11 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "macaupos.db",
-                ).build().also { instance = it }
+                )
+                    // ⚠️ P1 開發期:schema 未定稿,升級就重嚟。上線前移除。
+                    .fallbackToDestructiveMigration()
+                    .build()
+                    .also { instance = it }
             }
     }
 }

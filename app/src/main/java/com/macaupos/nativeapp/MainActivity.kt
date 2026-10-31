@@ -207,6 +207,8 @@ class MainActivity : ComponentActivity() {
         session.optString("name", "").takeIf { it.isNotBlank() && deviceStore.storeName.isBlank() }
             ?.let { deviceStore.storeName = it }
         deviceStore.storeAccount = session.optString("account", deviceStore.storeAccount)
+        session.optString("posDeviceToken", "").takeIf { it.isNotBlank() }
+            ?.let { deviceStore.posDeviceToken = it }
 
         // ③ 本機重新派生驗證器(唔存 server 嘅 pinHash —— dump 走部機只影響呢部機一個身份)
         offline.save(identity, pin, session)

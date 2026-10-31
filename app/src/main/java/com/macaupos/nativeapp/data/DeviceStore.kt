@@ -37,6 +37,11 @@ class DeviceStore(context: Context) {
         get() = store.read()?.optString("storeAccount", "") ?: ""
         set(value) = update { it.put("storeAccount", value) }
 
+    /** POS 終端憑證(登入 session.posDeviceToken;sync /api/pos/sync 帶 Bearer 用) */
+    var posDeviceToken: String
+        get() = store.read()?.optString("posDeviceToken", "") ?: ""
+        set(value) = update { it.put("posDeviceToken", value) }
+
     /** 已初始化(有齊 deviceId + deviceSecret)= 裝置模式,唔使打帳號。 */
     fun isBound(): Boolean = deviceId.length >= 8 && deviceSecret.isNotBlank()
 

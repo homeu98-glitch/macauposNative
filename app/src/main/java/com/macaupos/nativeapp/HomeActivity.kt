@@ -1,13 +1,24 @@
 package com.macaupos.nativeapp
 
+import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
 import com.macaupos.nativeapp.data.DeviceStore
 import com.macaupos.nativeapp.data.JsonStore
+import com.macaupos.nativeapp.data.db.AppDatabase
+import com.macaupos.nativeapp.data.repo.PrinterStore
+import com.macaupos.nativeapp.data.repo.SyncFlusher
 import com.macaupos.nativeapp.print.model.PrinterCfgDto
 import com.macaupos.nativeapp.print.net.TicketRenderer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
@@ -39,11 +50,67 @@ class HomeActivity : ComponentActivity() {
 
         findViewById<TextView>(R.id.txtModules).text = MODULES
 
-        findViewById<Button>(R.id.btnSelfTest).setOnClickListener { runPrintSelfTest() }
-        findViewById<Button>(R.id.btnLogout).setOnClickListener {
-            JsonStore(this, "offline-credential.json").clear()
-            finish()
+        findViewById<Button>(R.id.btnOrder).setOnClickListener {
+            startActivity(Intent(this, OrderActivity::class.java))
         }
+        findViewById<Button>(R.id.btnSelfTest).setOnClickListener { runPrintSelfTest() }
+        findViewById<Button>(R.id.btnPrinter).setOnClickListener { showPrinterDialog() }
+        findViewById<Button>(R.id.btnSync).setOnClickListener { runSync() }
+        findViewById<Button>(R.id.btnLogout).setOnClickListener { showLogoutDialog() }
+
+        // 開頁即試 flush + 顯示 pending 狀態
+        runSync(silent = true)
+    }
+
+    private fun showPrinterDialog() {
+        val store = PrinterStore(this)
+        val input = EditText(this).apply {
+            hint = "打印機 IP(例 192.168.1.100)"
+            setText(store.ip)
+            setSingleLine(true)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("打印機設置(LAN raw 9100)")
+            .setView(input)
+            .setPositiveButton("保存") { _, _ ->
+                store.ip = input.text.toString().trim()
+                Toast.makeText(this, if (store.hasPrinter()) "已設定:${store.ip}:${store.port}" else "已清除", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun runSync(silent: Boolean = false) {
+        val db = AppDatabase.get(this)
+        val flusher = SyncFlusher(this, db)
+        val txt = findViewById<TextView>(R.id.txtSyncState)
+        lifecycleScope.launch {
+            val pendingBefore = withContext(Dispatchers.IO) { db.syncOutboxDao().pendingCount() }
+            val result = withContext(Dispatchers.IO) { flusher.flush() }
+            val pendingAfter = withContext(Dispatchers.IO) { db.syncOutboxDao().pendingCount() }
+            txt.text = when {
+                pendingAfter == 0 -> "✓ 全部已同步"
+                result.ok && result.sent > 0 -> "已送 ${result.sent} 筆 · 待同步 $pendingAfter"
+                !result.ok && result.error?.startsWith("離線") == true -> "離線 · 待同步 $pendingAfter(恢復網絡自動補送)"
+                !result.ok -> "同步失敗 · 待同步 $pendingAfter(${result.error})"
+                else -> "待同步 $pendingAfter"
+            }
+            if (!silent) {
+                Toast.makeText(this@HomeActivity, txt.text, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showLogoutDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("登出")
+            .setMessage("會清空本機離線憑證,下次啟動要聯網登入。確定?")
+            .setPositiveButton("登出") { _, _ ->
+                JsonStore(this, "offline-credential.json").clear()
+                finish()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun runPrintSelfTest() {
@@ -62,12 +129,13 @@ class HomeActivity : ComponentActivity() {
 
     private companion object {
         val MODULES = """
-            ☐ 落單/餐牌(P1)
-            ☐ 桌台(P1)
-            ☐ 打印:收據/廚房單(P1 · 引擎已就位)
-            ☐ 離線同步 outbox/flush(P1)
+            ✓ 落單/餐牌(P1-A · 離線可用)
+            ✓ 打印:廚房單(P1-A · LAN 9100)
+            ✓ 離線同步 outbox/flush(P1-A)
+            ☐ 加菜/返結/結帳/收據(P1-B)
+            ☐ 桌台總覽(P1-B)
             ☐ 交班(P2)
-            ☐ 沽清/線上訂單(KDS)(P2)
+            ☐ 沽清/線上訂單/KDS(P2)
             ☐ 外送 board(P2)
             ☐ 餐牌管理(P3)
             ☐ 打印模板/打印中心(P3)
