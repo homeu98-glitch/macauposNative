@@ -12,6 +12,13 @@ interface PosOrderDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(order: PosOrderEntity)
 
+    /** 加菜/結帳用:同一 id 覆寫(UPDATE 全欄位)。 */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(order: PosOrderEntity)
+
+    @Query("SELECT * FROM pos_orders WHERE storeId = :storeId AND status != 'settled' ORDER BY createdAt DESC")
+    suspend fun openOrders(storeId: String): List<PosOrderEntity>
+
     @Query("SELECT * FROM pos_orders WHERE storeId = :storeId AND createdAt >= :sinceMs ORDER BY createdAt DESC")
     suspend fun ordersSince(storeId: String, sinceMs: Long): List<PosOrderEntity>
 

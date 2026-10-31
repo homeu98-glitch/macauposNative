@@ -86,6 +86,16 @@
                 android:textStyle="bold" />
 
             <Button
+                android:id="@+id/btnTables"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:backgroundTint="@color/brand_accent"
+                android:text="桌台總覽"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp" />
+
+            <Button
                 android:id="@+id/btnSync"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"

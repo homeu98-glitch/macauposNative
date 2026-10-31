@@ -53,6 +53,9 @@ class HomeActivity : ComponentActivity() {
         findViewById<Button>(R.id.btnOrder).setOnClickListener {
             startActivity(Intent(this, OrderActivity::class.java))
         }
+        findViewById<Button>(R.id.btnTables).setOnClickListener {
+            startActivity(Intent(this, TablesActivity::class.java))
+        }
         findViewById<Button>(R.id.btnSelfTest).setOnClickListener { runPrintSelfTest() }
         findViewById<Button>(R.id.btnPrinter).setOnClickListener { showPrinterDialog() }
         findViewById<Button>(R.id.btnSync).setOnClickListener { runSync() }

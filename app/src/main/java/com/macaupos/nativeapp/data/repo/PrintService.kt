@@ -27,6 +27,19 @@ class PrintService(context: Context) {
         return SdkPrinter.printBytes(appContext, printerStore.toCfg(), bytes)
     }
 
+    /** 收據:結帳後出(kind="receipt",TicketRenderer → renderReceiptTicket,帶付款方式/總額)。 */
+    suspend fun printReceipt(orderJson: JSONObject, paymentMethod: String, total: Double): Result<Unit> {
+        if (!printerStore.hasPrinter()) {
+            return Result.failure(IllegalStateException("未設定打印機(主畫面「設置」填 IP)"))
+        }
+        val job = PrintJobDto.fromJson(orderJson)
+        val bytes = TicketRenderer.renderTicket(
+            job, printerStore.toCfg(), "receipt",
+            deviceStore.storeName.ifBlank { null }, paymentMethod, total,
+        )
+        return SdkPrinter.printBytes(appContext, printerStore.toCfg(), bytes)
+    }
+
     /** 渲染字節(冇打印機都可以攞嚟自檢/存檔)。 */
     fun renderKitchenBytes(orderJson: JSONObject): ByteArray {
         val job = PrintJobDto.fromJson(orderJson)

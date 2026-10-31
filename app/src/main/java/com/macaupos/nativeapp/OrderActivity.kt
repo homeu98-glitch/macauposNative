@@ -62,6 +62,10 @@ class OrderActivity : ComponentActivity() {
     private var categories: List<Pair<String, String>> = emptyList() // (id, name)
     private var bootstrap: BootstrapRepository.Bootstrap? = null
 
+    /** 加菜模式:帶住既有單 id 入嚟,送單 = 附加落該單(ORDER_UPDATED + addon 廚房單)。 */
+    private var existingOrderId: String? = null
+    private var existingOrder: com.macaupos.nativeapp.data.db.PosOrderEntity? = null
+
     private lateinit var adapter: MenuAdapter
     private lateinit var txtCartCount: TextView
     private lateinit var txtCartTotal: TextView
@@ -92,6 +96,22 @@ class OrderActivity : ComponentActivity() {
         }
         findViewById<Button>(R.id.btnCart).setOnClickListener { showCartDialog() }
         findViewById<Button>(R.id.btnSend).setOnClickListener { sendOrder() }
+
+        // 加菜模式:預填枱號 + 載入既有單
+        intent.getStringExtra("tableName")?.takeIf { it.isNotBlank() }?.let {
+            findViewById<EditText>(R.id.inputTable).setText(it)
+            findViewById<EditText>(R.id.inputTable).isEnabled = false
+        }
+        existingOrderId = intent.getStringExtra("existingOrderId")
+        existingOrderId?.let { oid ->
+            lifecycleScope.launch {
+                existingOrder = withContext(Dispatchers.IO) { orderRepo.byId(oid) }
+                existingOrder?.let {
+                    findViewById<EditText>(R.id.inputTable).setText(it.tableName ?: "")
+                    Toast.makeText(this@OrderActivity, "加菜模式:${it.localOrderNo}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
 
         loadMenu()
     }
@@ -215,14 +235,57 @@ class OrderActivity : ComponentActivity() {
     private fun sendOrder() {
         val items = cart.values.toList()
         if (items.isEmpty()) return
-        val tableName = findViewById<EditText>(R.id.inputTable).text.toString().trim()
-            .ifBlank { "外賣" }
-        val fulfillment = if (tableName.contains("外賣", ignoreCase = true) || tableName.contains("takeaway", true)) "takeaway" else "dine_in"
 
         btnSendState(false)
         lifecycleScope.launch {
             try {
                 val bs = bootstrap
+
+                // ── 加菜模式:附加落既有單(ORDER_UPDATED + addon 票)──
+                val existing = existingOrder
+                if (existing != null) {
+                    val added = orderRepo.addItemsToOrder(existing, items, bs?.taxRate, bs?.serviceChargeRate)
+                    added.getOrElse { e ->
+                        runOnUiThread {
+                            btnSendState(true)
+                            Toast.makeText(this@OrderActivity, "加菜失敗:${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                        return@launch
+                    }
+                    // Kotlin Result 唔支援 destructuring → getOrThrow 拆(失敗已喺上面 return)
+                    val updated = added.getOrThrow().first
+                    val itemsJson = added.getOrThrow().second
+                    // addon 票:淨印新 items(ticketType=addon,web isAddOnOrder 同款)
+                    val addonJob = JSONObject()
+                        .put("id", updated.id)
+                        .put("tableName", updated.tableName ?: JSONObject.NULL)
+                        .put("ticketType", "addon")
+                        .put("items", newItemsOnly(updated, itemsJson, items))
+                    val printResult = withContext(Dispatchers.IO) {
+                        runCatching {
+                            if (PrinterStore(applicationContext).hasPrinter()) {
+                                printService.printKitchenTicket(addonJob)
+                            } else Result.success(Unit)
+                        }.getOrElse { Result.failure(it) }
+                    }
+                    withContext(Dispatchers.IO) { syncFlusher.flush() }
+                    withContext(Dispatchers.Main) {
+                        cart.clear()
+                        btnSendState(true)
+                        Toast.makeText(
+                            this@OrderActivity,
+                            "✓ 加菜已落單 ${updated.localOrderNo}" + printResult.fold({ " · 已打印" }, { " · ⚠ 打印:${it.message}" }),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        finish()
+                    }
+                    return@launch
+                }
+
+                // ── 新單 ──
+                val tableName = findViewById<EditText>(R.id.inputTable).text.toString().trim()
+                    .ifBlank { "外賣" }
+                val fulfillment = if (tableName.contains("外賣", ignoreCase = true) || tableName.contains("takeaway", true)) "takeaway" else "dine_in"
                 val localNo = orderRepo.nextLocalOrderNo()
                 val built = OrderBuilder.build(
                     storeId = deviceStore.storeId,
@@ -270,6 +333,7 @@ class OrderActivity : ComponentActivity() {
                         )
                     }
                     Toast.makeText(this@OrderActivity, msg, Toast.LENGTH_LONG).show()
+                    finish()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -278,6 +342,21 @@ class OrderActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** addon 票只印今次新加嗰啲(items JSON 入面按 menuItemId+qty 尾段摘出)。 */
+    private fun newItemsOnly(order: com.macaupos.nativeapp.data.db.PosOrderEntity, all: JSONArray, added: List<OrderBuilder.Item>): JSONArray {
+        // 簡化:直接用「今次送嘅 items」(數量係今次加嘅數量)
+        val arr = JSONArray()
+        added.forEach {
+            arr.put(
+                JSONObject()
+                    .put("name", it.name)
+                    .put("quantity", it.quantity)
+                    .put("price", it.price)
+            )
+        }
+        return arr
     }
 
     private fun btnSendState(enabled: Boolean) {

@@ -45,6 +45,12 @@ data class PosOrderEntity(
     val source: String,
     val paymentMethod: String?,
     val partySize: Int?,
+    /** 結帳時間(epoch ms);未結帳 null(web settled_at —— 報表/交班日歸屬真源) */
+    val settledAt: Long?,
+    /** 實收(web receivedAmount);結帳時寫 */
+    val receivedAmount: Double?,
+    /** 找零(web changeDue) */
+    val changeDue: Double?,
     val createdAt: Long,
     val updatedAt: Long,
     /** client 端最後修改時間;server 對帳用(web 同名欄位) */
