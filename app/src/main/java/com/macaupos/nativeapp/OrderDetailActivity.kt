@@ -63,6 +63,7 @@ class OrderDetailActivity : ComponentActivity() {
         }
         findViewById<Button>(R.id.btnSettle).setOnClickListener { showSettleDialog() }
         findViewById<Button>(R.id.btnReprint).setOnClickListener { reprintReceipt() }
+        findViewById<Button>(R.id.btnReopen).setOnClickListener { confirmReopen() }
 
         loadOrder()
     }
@@ -87,6 +88,7 @@ class OrderDetailActivity : ComponentActivity() {
         val statusLabel = when (o.status) {
             "settled" -> "已結帳" + o.paymentMethod?.let { " · $it" }.orEmpty()
             "paid" -> "已收款(待收尾)"
+            "reopened" -> "待重結" + o.reopenReason?.let { " · $it" }.orEmpty()
             else -> "開放中"
         }
         findViewById<TextView>(R.id.txtMeta).text = listOfNotNull(
@@ -115,6 +117,33 @@ class OrderDetailActivity : ComponentActivity() {
         )
         findViewById<Button>(R.id.btnSettle).visibility =
             if (o.status == "settled") View.GONE else View.VISIBLE
+        // 返結:已結帳(或已收款待收尾)先可以反結重開
+        findViewById<Button>(R.id.btnReopen).visibility =
+            if (o.status == "settled" || o.status == "paid") View.VISIBLE else View.GONE
+    }
+
+    /** 返結 —— 反結重開該單(ORDER_UPDATED,status=reopened)。 */
+    private fun confirmReopen() {
+        val o = order ?: return
+        val input = android.widget.EditText(this).apply { hint = "返結原因(可選)" }
+        AlertDialog.Builder(this)
+            .setTitle("返結 ${o.localOrderNo}")
+            .setMessage("反結後該單會回到「未結帳」,可以再加菜／重新結帳。\n首次結帳時間會保留作審計。")
+            .setView(input)
+            .setPositiveButton("確認返結") { _, _ ->
+                lifecycleScope.launch {
+                    val r = orderRepo.reopenOrder(o, input.text.toString().trim())
+                    r.onSuccess {
+                        loadOrder()
+                        withContext(Dispatchers.IO) { syncFlusher.flush() }
+                        Toast.makeText(this@OrderDetailActivity, "✓ 已返結 ${it.localOrderNo}", Toast.LENGTH_SHORT).show()
+                    }.onFailure {
+                        Toast.makeText(this@OrderDetailActivity, "返結失敗:${it.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun showSettleDialog() {

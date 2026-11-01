@@ -22,6 +22,10 @@ interface PosOrderDao {
     @Query("SELECT * FROM pos_orders WHERE storeId = :storeId AND createdAt >= :sinceMs ORDER BY createdAt DESC")
     suspend fun ordersSince(storeId: String, sinceMs: Long): List<PosOrderEntity>
 
+    /** 報表用:指定日期區間。 */
+    @Query("SELECT * FROM pos_orders WHERE storeId = :storeId AND createdAt >= :fromMs AND createdAt < :toMs ORDER BY createdAt DESC")
+    suspend fun ordersBetween(storeId: String, fromMs: Long, toMs: Long): List<PosOrderEntity>
+
     @Query("SELECT * FROM pos_orders WHERE storeId = :storeId ORDER BY createdAt DESC LIMIT :limit")
     fun observeRecent(storeId: String, limit: Int): Flow<List<PosOrderEntity>>
 

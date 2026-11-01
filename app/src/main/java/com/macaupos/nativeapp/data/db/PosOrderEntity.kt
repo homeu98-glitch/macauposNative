@@ -51,6 +51,14 @@ data class PosOrderEntity(
     val receivedAmount: Double?,
     /** 找零(web changeDue) */
     val changeDue: Double?,
+    /** 返結時間(web reopenedAt)—— 反結重開嘅審計欄位 */
+    val reopenedAt: Long? = null,
+    /** 首次結帳時間(web originalSettledAt)—— 重結唔可以覆蓋 */
+    val originalSettledAt: Long? = null,
+    /** 返結次數(web reopenCount) */
+    val reopenCount: Int = 0,
+    /** 返結原因(web reopenReason) */
+    val reopenReason: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     /** client 端最後修改時間;server 對帳用(web 同名欄位) */

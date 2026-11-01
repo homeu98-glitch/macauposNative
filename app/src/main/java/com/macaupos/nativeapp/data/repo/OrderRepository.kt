@@ -81,6 +81,8 @@ class OrderRepository(context: Context, private val db: AppDatabase) {
             settledAt = now,
             receivedAmount = receivedAmount,
             changeDue = change,
+            // 返結審計:重結唔可以覆蓋首次結帳時間(web `originalSettledAt ?? now`)
+            originalSettledAt = order.originalSettledAt ?: now,
             updatedAt = now,
             clientUpdatedAt = now,
             syncState = "pending",
@@ -114,6 +116,41 @@ class OrderRepository(context: Context, private val db: AppDatabase) {
             )
         )
         settled
+    }
+
+    /**
+     * 返結(反結重開) —— 對齊 web `status:"reopened"` 語意:
+     * - status → "reopened",寫 reopenedAt / reopenReason / reopenCount+1
+     * - **originalSettledAt 保留首次結帳時間**(重結都唔覆蓋)
+     * - settledAt 清空(該單回到「未結帳」,可以再加菜/重結)
+     * - 事件:ORDER_UPDATED `{order: row}`(web 冇 ORDER_REOPENED 類型,用 UPDATED)
+     */
+    suspend fun reopenOrder(order: PosOrderEntity, reason: String?): Result<PosOrderEntity> = runCatching {
+        val now = System.currentTimeMillis()
+        val reopened = order.copy(
+            status = "reopened",
+            settledAt = null,
+            receivedAmount = null,
+            changeDue = null,
+            reopenedAt = now,
+            reopenReason = reason?.takeIf { it.isNotBlank() },
+            reopenCount = order.reopenCount + 1,
+            originalSettledAt = order.originalSettledAt ?: order.settledAt,
+            updatedAt = now,
+            clientUpdatedAt = now,
+            syncState = "pending",
+        )
+        db.posOrderDao().upsert(reopened)
+        val payload = JSONObject().put("order", orderRowJson(reopened))
+        db.syncOutboxDao().enqueue(
+            SyncOutboxEntity(
+                kind = "ORDER_UPDATED",
+                dedupeKey = "reopen:${reopened.id}:${now}",
+                payload = payload.toString(),
+                createdAt = now,
+            )
+        )
+        reopened
     }
 
     /**
@@ -190,6 +227,10 @@ class OrderRepository(context: Context, private val db: AppDatabase) {
         .put("payment_method", o.paymentMethod ?: JSONObject.NULL)
         .put("party_size", o.partySize ?: JSONObject.NULL)
         .put("settled_at", iso(o.settledAt))
+        .put("reopened_at", iso(o.reopenedAt))
+        .put("original_settled_at", iso(o.originalSettledAt))
+        .put("reopen_count", o.reopenCount)
+        .put("reopen_reason", o.reopenReason ?: JSONObject.NULL)
         .put("created_at", iso(o.createdAt))
         .put("updated_at", iso(o.updatedAt))
         .put("client_updated_at", iso(o.clientUpdatedAt))
