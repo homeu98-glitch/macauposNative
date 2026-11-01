@@ -52,6 +52,12 @@
                  (要配套 @xml/device_filter,而家未接 wizard 冇意義) -->
         </activity>
 
+        <!-- 🔴 2026-11-01 實機修復:HomeActivity 之前漏咗註冊 → 店主登入成功
+             startActivity 即 ActivityNotFoundException crash(HD21 實測) -->
+        <activity
+            android:name=".HomeActivity"
+            android:exported="false" />
+
         <activity
             android:name=".OrderActivity"
             android:exported="false"

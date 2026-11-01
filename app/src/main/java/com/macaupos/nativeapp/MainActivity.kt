@@ -177,7 +177,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun handleLoginResponse(resp: JSONObject, identity: LoginIdentity, pin: String) {
+    private suspend fun handleLoginResponse(resp: JSONObject, identity: LoginIdentity, pin: String) {
         val ok = resp.optBoolean("ok", false)
         if (!ok) {
             val status = resp.optInt("_httpStatus", 0)
@@ -211,7 +211,8 @@ class MainActivity : ComponentActivity() {
             ?.let { deviceStore.posDeviceToken = it }
 
         // ③ 本機重新派生驗證器(唔存 server 嘅 pinHash —— dump 走部機只影響呢部機一個身份)
-        offline.save(identity, pin, session)
+        //    PBKDF2 120k 迭代 + 檔案寫入,搬去 IO thread,唔好卡 main
+        withContext(Dispatchers.IO) { offline.save(identity, pin, session) }
 
         goHome(offline = false, name = identity.name)
     }
