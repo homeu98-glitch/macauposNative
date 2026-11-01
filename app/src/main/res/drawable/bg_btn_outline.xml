@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 白底描邊按鈕(web bg-white ring-slate-200 rounded-2xl) -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/chip_bg" />
+            <corners android:radius="16dp" />
+            <stroke android:width="1dp" android:color="@color/text_faint" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/card" />
+            <corners android:radius="16dp" />
+            <stroke android:width="1dp" android:color="@color/card_border" />
+        </shape>
+    </item>
+</selector>

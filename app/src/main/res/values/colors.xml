@@ -1,12 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 對齊 web POS 嘅紫漸變品牌色 -->
-    <color name="brand_bg">#0F1419</color>
-    <color name="brand_surface">#171C23</color>
-    <color name="brand_accent">#7F77DD</color>
-    <color name="brand_accent_deep">#534AB7</color>
-    <color name="text_primary">#F2F4F8</color>
-    <color name="text_secondary">#9AA3B2</color>
-    <color name="ok_green">#39B98A</color>
-    <color name="warn_red">#E25A5A</color>
+    <!-- ═══ Web POS 設計 token(對齊 pos-app.tsx:slate-100 底/白卡/orange-500 主色)═══ -->
+    <color name="bg_screen">#F1F5F9</color>          <!-- slate-100 -->
+    <color name="card">#FFFFFF</color>
+    <color name="card_border">#E2E8F0</color>        <!-- slate-200 -->
+    <color name="chip_bg">#F8FAFC</color>            <!-- slate-50 -->
+
+    <color name="text_primary">#0F172A</color>       <!-- slate-900 -->
+    <color name="text_secondary">#64748B</color>     <!-- slate-500 -->
+    <color name="text_faint">#94A3B8</color>         <!-- slate-400 -->
+
+    <color name="accent">#F97316</color>             <!-- orange-500 -->
+    <color name="accent_deep">#EA580C</color>        <!-- orange-600 -->
+    <color name="accent_soft">#FFEDD5</color>        <!-- orange-100 -->
+    <color name="accent_border">#FDBA74</color>      <!-- orange-300 -->
+
+    <color name="ok_green">#16A34A</color>           <!-- green-600 -->
+    <color name="ok_soft">#F0FDF4</color>
+    <color name="warn_red">#DC2626</color>           <!-- red-600 -->
+    <color name="warn_amber">#D97706</color>         <!-- amber-600 -->
+    <color name="amber_soft">#FFFBEB</color>         <!-- amber-50 -->
+
+    <!-- ═══ 舊名保留(避免漏改引用;值已對齊淺色主題)═══ -->
+    <color name="brand_bg">#F1F5F9</color>
+    <color name="brand_surface">#FFFFFF</color>
+    <color name="brand_accent">#F97316</color>
+    <color name="brand_accent_deep">#EA580C</color>
 </resources>

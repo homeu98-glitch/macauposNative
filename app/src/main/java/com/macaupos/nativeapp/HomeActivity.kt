@@ -48,8 +48,6 @@ class HomeActivity : ComponentActivity() {
             "v${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE}) · 店員:$operator · " +
                 "Android ${android.os.Build.VERSION.RELEASE}(API ${android.os.Build.VERSION.SDK_INT})"
 
-        findViewById<TextView>(R.id.txtModules).text = MODULES
-
         findViewById<Button>(R.id.btnOrder).setOnClickListener {
             startActivity(Intent(this, OrderActivity::class.java))
         }
@@ -128,22 +126,5 @@ class HomeActivity : ComponentActivity() {
                 "(P1 接真打印機:LAN 9100 / 藍牙 RFCOMM / USB / Sunmi AAR)"
         }.onSuccess { txt.text = it }
             .onFailure { txt.text = "✗ 自檢失敗:${it.message}" }
-    }
-
-    private companion object {
-        val MODULES = """
-            ✓ 落單/餐牌(P1-A · 離線可用)
-            ✓ 打印:廚房單(P1-A · LAN 9100)
-            ✓ 離線同步 outbox/flush(P1-A)
-            ☐ 加菜/返結/結帳/收據(P1-B)
-            ☐ 桌台總覽(P1-B)
-            ☐ 交班(P2)
-            ☐ 沽清/線上訂單/KDS(P2)
-            ☐ 外送 board(P2)
-            ☐ 餐牌管理(P3)
-            ☐ 打印模板/打印中心(P3)
-            ☐ 員工/會員(P3)
-            ☐ 報表/庫存(P4)
-        """.trimIndent()
     }
 }

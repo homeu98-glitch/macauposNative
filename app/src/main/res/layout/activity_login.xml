@@ -1,97 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 登入 —— web /login 淺色卡式風格 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/brand_bg"
-    android:padding="24dp"
-    android:gravity="center_horizontal">
+    android:background="@color/bg_screen"
+    android:gravity="center"
+    android:padding="32dp">
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        android:text="@string/login_title"
-        android:textColor="@color/text_primary"
-        android:textSize="32sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/subtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="全原生 POS · 離線可用"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/txtMode"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center"
-        android:textColor="@color/brand_accent"
-        android:textSize="13sp" />
+        android:orientation="vertical"
+        android:background="@drawable/bg_card"
+        android:padding="28dp">
 
-    <EditText
-        android:id="@+id/inputAccount"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="32dp"
-        android:background="@color/brand_surface"
-        android:hint="@string/login_hint_store"
-        android:inputType="number"
-        android:maxLength="8"
-        android:paddingHorizontal="16dp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_secondary" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Macau POS"
+            android:textColor="@color/text_primary"
+            android:textSize="26sp"
+            android:textStyle="bold" />
 
-    <EditText
-        android:id="@+id/inputPin"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="12dp"
-        android:background="@color/brand_surface"
-        android:hint="@string/login_hint_pin"
-        android:inputType="numberPassword"
-        android:maxLength="4"
-        android:paddingHorizontal="16dp"
-        android:textColor="@color/text_primary"
-        android:textColorHint="@color/text_secondary" />
+        <TextView
+            android:id="@+id/txtMode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="店員終端登入"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
 
-    <Button
-        android:id="@+id/btnLogin"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="20dp"
-        android:backgroundTint="@color/brand_accent"
-        android:text="@string/login_btn"
-        android:textColor="@color/text_primary"
-        android:textSize="16sp" />
+        <TextView
+            android:id="@+id/txtOfflineBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_chip_selected"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="5dp"
+            android:text="可離線登入"
+            android:textColor="@color/card"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/txtStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:minHeight="40dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="店舖帳號(8 位)"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
 
-    <TextView
-        android:id="@+id/txtOfflineBadge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@color/brand_surface"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp"
-        android:text="@string/login_offline_badge"
-        android:textColor="@color/ok_green"
-        android:textSize="12sp"
-        android:visibility="gone" />
+        <EditText
+            android:id="@+id/inputAccount"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_btn_outline"
+            android:hint="例:12345678"
+            android:inputType="number"
+            android:maxLength="8"
+            android:paddingHorizontal="14dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_faint"
+            android:textSize="17sp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="PIN(4 位)"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+
+        <EditText
+            android:id="@+id/inputPin"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_btn_outline"
+            android:hint="••••"
+            android:inputType="numberPassword"
+            android:maxLength="4"
+            android:paddingHorizontal="14dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_faint"
+            android:textSize="20sp" />
+
+        <Button
+            android:id="@+id/btnLogin"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/bg_btn_accent"
+            android:text="登入"
+            android:textColor="@color/card"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:minHeight="20dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 </LinearLayout>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 分類 chip:未選 = 白底描邊圓膠囊;選中用 bg_chip_selected -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/chip_bg" />
+            <corners android:radius="999dp" />
+            <stroke android:width="1dp" android:color="@color/text_faint" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/card" />
+            <corners android:radius="999dp" />
+            <stroke android:width="1dp" android:color="@color/card_border" />
+        </shape>
+    </item>
+</selector>

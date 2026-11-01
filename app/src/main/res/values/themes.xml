@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 對齊 web POS 嘅深色主題;minSdk 23 用平台 Material(唔引 AppCompat,保持依賴極簡) -->
-    <style name="Theme.MacauposNative" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#0F1419</item>
-        <item name="android:navigationBarColor">#0F1419</item>
-        <item name="android:windowBackground">#0F1419</item>
-        <item name="android:colorAccent">#7F77DD</item>
+    <!-- 淺色主題(對齊 web POS bg-slate-100);minSdk 23 用平台 Material(唔引 AppCompat) -->
+    <style name="Theme.MacauposNative" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#F1F5F9</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowBackground">#F1F5F9</item>
+        <item name="android:colorAccent">#F97316</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

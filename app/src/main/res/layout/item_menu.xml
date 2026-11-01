@@ -1,33 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 餐牌一格:點擊目標 ≥44dp 觸控規範 -->
+<!-- 菜品卡 —— web rounded-2xl 白卡:名(bold slate-900)+ 價(orange bold);≥88dp -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    android:background="@color/brand_surface"
-    android:foreground="?android:attr/selectableItemBackground"
-    android:gravity="center"
+    android:layout_margin="5dp"
+    android:minHeight="92dp"
+    android:background="@drawable/bg_menu_card"
+    android:gravity="center_vertical"
     android:orientation="vertical"
-    android:minHeight="88dp"
-    android:padding="10dp">
+    android:padding="14dp">
 
     <TextView
         android:id="@+id/txtName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:ellipsize="end"
-        android:gravity="center"
-        android:lines="2"
+        android:lineSpacingExtra="2dp"
+        android:maxLines="2"
+        android:text="菜品名"
         android:textColor="@color/text_primary"
-        android:textSize="15sp" />
+        android:textSize="15sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/txtPrice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:gravity="center"
-        android:textColor="@color/ok_green"
+        android:layout_marginTop="6dp"
+        android:text="MOP0.00"
+        android:textColor="@color/accent_deep"
         android:textSize="14sp"
         android:textStyle="bold" />
 </LinearLayout>

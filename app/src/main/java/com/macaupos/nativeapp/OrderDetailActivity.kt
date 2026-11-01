@@ -50,6 +50,7 @@ class OrderDetailActivity : ComponentActivity() {
         printService = PrintService(this)
         syncFlusher = SyncFlusher(this, db)
 
+        findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnAddItems).setOnClickListener {
             order?.let {
                 startActivity(

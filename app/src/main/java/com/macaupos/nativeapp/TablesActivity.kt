@@ -54,9 +54,10 @@ class TablesActivity : ComponentActivity() {
 
         adapter = TableAdapter()
         val recycler = findViewById<RecyclerView>(R.id.recyclerTables)
-        recycler.layoutManager = GridLayoutManager(this, 3)
+        recycler.layoutManager = GridLayoutManager(this, 4)
         recycler.adapter = adapter
 
+        findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener {
             lifecycleScope.launch {
                 bootstrapRepo.refresh(deviceStore.storeId)
@@ -135,12 +136,13 @@ class TablesActivity : ComponentActivity() {
             val open = openByTable[t.name]
             h.txtTableName.text = t.name
             if (open != null) {
-                val currency = "MOP"
-                h.txtState.text = "有單 ${open.localOrderNo} · ${currency}${String.format(Locale.US, "%.2f", open.total)}"
-                h.txtState.setTextColor(getColor(R.color.warn_red))
+                h.itemView.setBackgroundResource(R.drawable.bg_table_occupied)
+                h.txtState.text = "有單 ${open.localOrderNo} · MOP${String.format(Locale.US, "%.2f", open.total)}"
+                h.txtState.setTextColor(getColor(R.color.accent_deep))
             } else {
-                t.area?.let { h.txtState.text = "空閒 · $it" } ?: run { h.txtState.text = "空閒" }
-                h.txtState.setTextColor(getColor(R.color.text_secondary))
+                h.itemView.setBackgroundResource(R.drawable.bg_table_free)
+                h.txtState.text = t.area?.let { "空閒 · $it" } ?: "空閒"
+                h.txtState.setTextColor(getColor(R.color.ok_green))
             }
             h.itemView.setOnClickListener { openTable(t) }
         }

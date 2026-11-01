@@ -3,16 +3,19 @@ package com.macaupos.nativeapp
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.macaupos.nativeapp.data.DeviceStore
 import com.macaupos.nativeapp.data.db.AppDatabase
@@ -28,17 +31,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
- * P1-A 落單 —— 離線優先閉環:
- * 餐牌(bootstrap 快取)→ 網格點菜 → 送廚房 →
- * 本地單號(Room max+1)→ 建單寫 Room + outbox → 廚房單字節渲染 + LAN 9100 打印 →
- * 上網後 SyncFlusher 推 /api/pos/sync。
+ * P1-A 落單 —— 離線優先閉環(web pos-app 雙欄佈局):
+ * 分類 chips → 菜品網格 → 右側購物車(步進器)→ 送廚房 →
+ * 本地單號(Room max+1)→ 建單寫 Room + outbox → 廚房單打印 → sync。
  *
- * 觸控規範:菜格 ≥88dp、按鈕 ≥44dp。
+ * 觸控規範:菜格 ≥88dp、步進按鈕 40dp、主按鈕 56dp。
  */
 class OrderActivity : ComponentActivity() {
 
@@ -61,15 +61,20 @@ class OrderActivity : ComponentActivity() {
     private var menu: List<MenuItemLite> = emptyList()
     private var categories: List<Pair<String, String>> = emptyList() // (id, name)
     private var bootstrap: BootstrapRepository.Bootstrap? = null
+    private var selectedCategory: String? = null
 
     /** 加菜模式:帶住既有單 id 入嚟,送單 = 附加落該單(ORDER_UPDATED + addon 廚房單)。 */
     private var existingOrderId: String? = null
     private var existingOrder: com.macaupos.nativeapp.data.db.PosOrderEntity? = null
 
-    private lateinit var adapter: MenuAdapter
-    private lateinit var txtCartCount: TextView
+    private lateinit var menuAdapter: MenuAdapter
+    private lateinit var cartAdapter: CartAdapter
+    private lateinit var txtCartTitle: TextView
+    private lateinit var txtSubtotal: TextView
+    private lateinit var txtTaxService: TextView
     private lateinit var txtCartTotal: TextView
-    private lateinit var spinnerCategory: android.widget.Spinner
+    private lateinit var btnSend: Button
+    private lateinit var txtSubtitle: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,25 +87,37 @@ class OrderActivity : ComponentActivity() {
         printService = PrintService(this)
         syncFlusher = SyncFlusher(this, db)
 
-        txtCartCount = findViewById(R.id.txtCartCount)
+        txtCartTitle = findViewById(R.id.txtCartTitle)
+        txtSubtotal = findViewById(R.id.txtSubtotal)
+        txtTaxService = findViewById(R.id.txtTaxService)
         txtCartTotal = findViewById(R.id.txtCartTotal)
-        spinnerCategory = findViewById(R.id.spinnerCategory)
+        btnSend = findViewById(R.id.btnSend)
+        txtSubtitle = findViewById(R.id.txtSubtitle)
 
-        adapter = MenuAdapter { item -> addToCart(item) }
-        val recycler = findViewById<RecyclerView>(R.id.recyclerMenu)
-        recycler.layoutManager = GridLayoutManager(this, 3)
-        recycler.adapter = adapter
+        menuAdapter = MenuAdapter { item -> addToCart(item) }
+        findViewById<RecyclerView>(R.id.recyclerMenu).apply {
+            layoutManager = GridLayoutManager(this@OrderActivity, 4)
+            adapter = menuAdapter
+        }
 
+        cartAdapter = CartAdapter()
+        findViewById<RecyclerView>(R.id.cartList).apply {
+            layoutManager = LinearLayoutManager(this@OrderActivity)
+            adapter = cartAdapter
+        }
+
+        findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnClear).setOnClickListener {
             cart.clear(); renderCart()
         }
-        findViewById<Button>(R.id.btnCart).setOnClickListener { showCartDialog() }
-        findViewById<Button>(R.id.btnSend).setOnClickListener { sendOrder() }
+        btnSend.setOnClickListener { sendOrder() }
 
         // 加菜模式:預填枱號 + 載入既有單
         intent.getStringExtra("tableName")?.takeIf { it.isNotBlank() }?.let {
-            findViewById<EditText>(R.id.inputTable).setText(it)
-            findViewById<EditText>(R.id.inputTable).isEnabled = false
+            val input = findViewById<EditText>(R.id.inputTable)
+            input.setText(it)
+            input.isEnabled = false
+            findViewById<TextView>(R.id.txtTitle).text = "加菜 · $it"
         }
         existingOrderId = intent.getStringExtra("existingOrderId")
         existingOrderId?.let { oid ->
@@ -136,13 +153,12 @@ class OrderActivity : ComponentActivity() {
             result.onSuccess {
                 bootstrap = bootstrapRepo.cached(storeId)
                 renderMenu()
-                runOnUiThread { Toast.makeText(this@OrderActivity, "餐牌已更新", Toast.LENGTH_SHORT).show() }
             }.onFailure { e ->
                 val hasCache = bootstrap != null
-                runOnUiThread {
+                withContext(Dispatchers.Main) {
                     Toast.makeText(
                         this@OrderActivity,
-                        if (hasCache) "離線:用緊本地快取餐牌(${e.message})" else "餐牌載入失敗:${e.message}",
+                        if (hasCache) "離線:用緊本地快取餐牌" else "餐牌載入失敗:${e.message}",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -165,29 +181,48 @@ class OrderActivity : ComponentActivity() {
                 .map { it.optString("id", "") to it.optString("name", "") }
                 .filter { it.first.isNotBlank() }
         }
-        renderCategorySpinner()
-        adapter.submit(filterMenu(null))
+        txtSubtitle.text = "${menu.size} 個菜品"
+        renderCategoryChips()
+        applyCategoryFilter()
         renderCart()
     }
 
-    private fun renderCategorySpinner() {
-        val labels = mutableListOf("全部菜品")
-        labels.addAll(categories.map { it.second })
-        spinnerCategory.adapter = android.widget.ArrayAdapter(
-            this, android.R.layout.simple_spinner_dropdown_item, labels
-        )
-        spinnerCategory.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: android.widget.AdapterView<*>?, v: View?, pos: Int, id: Long) {
-                val catId = if (pos == 0) null else categories.getOrNull(pos - 1)?.first
-                adapter.submit(filterMenu(catId))
-            }
+    // ---- 分類 chips(對齊 web 圓膠囊)----
 
-            override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
+    private fun renderCategoryChips() {
+        val bar = findViewById<LinearLayout>(R.id.chipsCategory)
+        bar.removeAllViews()
+        val items: List<Pair<String?, String>> =
+            listOf<Pair<String?, String>>(null to "全部") + categories.map { it.first to it.second }
+        items.forEach { (catId, label) ->
+            val selected = catId == selectedCategory
+            val tv = TextView(this).apply {
+                text = label
+                setPadding(28, 12, 28, 12)
+                gravity = Gravity.CENTER
+                textSize = 14f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.text_secondary))
+                background = getDrawable(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    selectedCategory = catId
+                    renderCategoryChips()
+                    applyCategoryFilter()
+                }
+            }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.marginEnd = 12
+            bar.addView(tv, lp)
         }
     }
 
-    private fun filterMenu(categoryId: String?): List<MenuItemLite> =
-        if (categoryId == null) menu else menu.filter { it.categoryId == categoryId }
+    private fun applyCategoryFilter() {
+        menuAdapter.submit(
+            if (selectedCategory == null) menu else menu.filter { it.categoryId == selectedCategory }
+        )
+    }
 
     // ---- 購物車 ----
 
@@ -204,30 +239,34 @@ class OrderActivity : ComponentActivity() {
         renderCart()
     }
 
+    private fun changeQty(item: OrderBuilder.Item, delta: Int) {
+        val newQty = item.quantity + delta
+        if (newQty <= 0) cart.remove(item.menuItemId)
+        else cart[item.menuItemId] = item.copy(quantity = newQty)
+        renderCart()
+    }
+
     private fun renderCart() {
-        val lines = cart.values
+        val lines = cart.values.toList()
         val count = lines.sumOf { it.quantity }
         val totals = OrderTotals.compute(
             lines.map { OrderTotals.CartLine(it.price, it.quantity) },
             bootstrap?.taxRate, bootstrap?.serviceChargeRate,
         )
-        val currency = bootstrap?.currency ?: "$"
-        txtCartCount.text = "$count 件"
-        txtCartTotal.text = String.format(Locale.US, "%s%.2f", currency, totals.total)
-        findViewById<Button>(R.id.btnSend).isEnabled = count > 0
-    }
+        val currency = bootstrap?.currency ?: "MOP"
+        val money = { v: Double -> String.format(Locale.US, "%s%.2f", currency, v) }
 
-    private fun showCartDialog() {
-        if (cart.isEmpty()) return
-        val currency = bootstrap?.currency ?: "$"
-        val rows = cart.values.map { it ->
-            "${it.name} ×${it.quantity}   ${currency}${String.format(Locale.US, "%.2f", it.price * it.quantity)}"
-        }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("購物車明細(長按刪除)")
-            .setItems(rows) { _, _ -> }
-            .setPositiveButton("關閉", null)
-            .show()
+        txtCartTitle.text = "購物車 · $count 件"
+        txtSubtotal.text = "小計 ${money(totals.subtotal)}"
+        val extras = buildList {
+            if (totals.serviceChargeAmount > 0.0) add("服務費 ${money(totals.serviceChargeAmount)}")
+            if (totals.taxAmount > 0.0) add("稅 ${money(totals.taxAmount)}")
+        }
+        txtTaxService.visibility = if (extras.isEmpty()) View.GONE else View.VISIBLE
+        txtTaxService.text = extras.joinToString(" · ")
+        txtCartTotal.text = money(totals.total)
+        btnSend.isEnabled = count > 0
+        cartAdapter.submit(lines)
     }
 
     // ---- 送單 ----
@@ -236,7 +275,7 @@ class OrderActivity : ComponentActivity() {
         val items = cart.values.toList()
         if (items.isEmpty()) return
 
-        btnSendState(false)
+        btnSend.isEnabled = false
         lifecycleScope.launch {
             try {
                 val bs = bootstrap
@@ -246,13 +285,12 @@ class OrderActivity : ComponentActivity() {
                 if (existing != null) {
                     val added = orderRepo.addItemsToOrder(existing, items, bs?.taxRate, bs?.serviceChargeRate)
                     added.getOrElse { e ->
-                        runOnUiThread {
-                            btnSendState(true)
+                        withContext(Dispatchers.Main) {
+                            btnSend.isEnabled = true
                             Toast.makeText(this@OrderActivity, "加菜失敗:${e.message}", Toast.LENGTH_LONG).show()
                         }
                         return@launch
                     }
-                    // Kotlin Result 唔支援 destructuring → getOrThrow 拆(失敗已喺上面 return)
                     val updated = added.getOrThrow().first
                     val itemsJson = added.getOrThrow().second
                     // addon 票:淨印新 items(ticketType=addon,web isAddOnOrder 同款)
@@ -271,7 +309,7 @@ class OrderActivity : ComponentActivity() {
                     withContext(Dispatchers.IO) { syncFlusher.flush() }
                     withContext(Dispatchers.Main) {
                         cart.clear()
-                        btnSendState(true)
+                        btnSend.isEnabled = true
                         Toast.makeText(
                             this@OrderActivity,
                             "✓ 加菜已落單 ${updated.localOrderNo}" + printResult.fold({ " · 已打印" }, { " · ⚠ 打印:${it.message}" }),
@@ -299,21 +337,21 @@ class OrderActivity : ComponentActivity() {
                 )
                 val created = orderRepo.createOrder(built)
                 created.getOrElse { e ->
-                    runOnUiThread {
-                        btnSendState(true)
+                    withContext(Dispatchers.Main) {
+                        btnSend.isEnabled = true
                         Toast.makeText(this@OrderActivity, "建單失敗:${e.message}", Toast.LENGTH_LONG).show()
                     }
                     return@launch
                 }
 
-                // 廚房單:有打印機就即印;冇都照出字節(自檢證明渲染 OK),離線單照收
+                // 廚房單:有打印機就即印;冇都照出字節,離線單照收
                 val printResult = withContext(Dispatchers.IO) {
                     runCatching {
                         if (PrinterStore(applicationContext).hasPrinter()) {
                             printService.printKitchenTicket(built.payload)
                         } else {
-                            val bytes = printService.renderKitchenBytes(built.payload)
-                            Result.success<Unit>(Unit).also { _ -> bytes.size } // 渲染成功即算
+                            printService.renderKitchenBytes(built.payload)
+                            Result.success(Unit)
                         }
                     }.getOrElse { Result.failure(it) }
                 }
@@ -324,7 +362,7 @@ class OrderActivity : ComponentActivity() {
                 withContext(Dispatchers.Main) {
                     cart.clear()
                     renderCart()
-                    btnSendState(true)
+                    btnSend.isEnabled = true
                     val msg = buildString {
                         append("✓ ${built.order.localOrderNo} 已收單")
                         printResult.fold(
@@ -337,16 +375,15 @@ class OrderActivity : ComponentActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    btnSendState(true)
+                    btnSend.isEnabled = true
                     Toast.makeText(this@OrderActivity, "送單異常:${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    /** addon 票只印今次新加嗰啲(items JSON 入面按 menuItemId+qty 尾段摘出)。 */
+    /** addon 票只印今次新加嗰啲。 */
     private fun newItemsOnly(order: com.macaupos.nativeapp.data.db.PosOrderEntity, all: JSONArray, added: List<OrderBuilder.Item>): JSONArray {
-        // 簡化:直接用「今次送嘅 items」(數量係今次加嘅數量)
         val arr = JSONArray()
         added.forEach {
             arr.put(
@@ -359,11 +396,7 @@ class OrderActivity : ComponentActivity() {
         return arr
     }
 
-    private fun btnSendState(enabled: Boolean) {
-        findViewById<Button>(R.id.btnSend).isEnabled = enabled
-    }
-
-    // ---- Adapter ----
+    // ---- Adapters ----
 
     private inner class MenuAdapter(
         private val onClick: (MenuItemLite) -> Unit,
@@ -383,7 +416,7 @@ class OrderActivity : ComponentActivity() {
 
         override fun onBindViewHolder(h: VH, pos: Int) {
             val item = items[pos]
-            val currency = bootstrap?.currency ?: "$"
+            val currency = bootstrap?.currency ?: "MOP"
             h.txtName.text = item.name
             h.txtPrice.text = String.format(Locale.US, "%s%.2f", currency, item.price)
             h.itemView.setOnClickListener { onClick(item) }
@@ -392,6 +425,40 @@ class OrderActivity : ComponentActivity() {
         inner class VH(v: View) : RecyclerView.ViewHolder(v) {
             val txtName: TextView = v.findViewById(R.id.txtName)
             val txtPrice: TextView = v.findViewById(R.id.txtPrice)
+        }
+    }
+
+    /** 購物車行:+/- 步進;減到 0 移除。 */
+    private inner class CartAdapter : RecyclerView.Adapter<CartAdapter.VH>() {
+
+        private var lines: List<OrderBuilder.Item> = emptyList()
+
+        fun submit(list: List<OrderBuilder.Item>) {
+            lines = list
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
+            VH(LayoutInflater.from(parent.context).inflate(R.layout.item_cart_line, parent, false))
+
+        override fun getItemCount(): Int = lines.size
+
+        override fun onBindViewHolder(h: VH, pos: Int) {
+            val item = lines[pos]
+            val currency = bootstrap?.currency ?: "MOP"
+            h.txtName.text = item.name
+            h.txtQty.text = item.quantity.toString()
+            h.txtAmount.text = String.format(Locale.US, "%s%.2f", currency, item.price * item.quantity)
+            h.btnPlus.setOnClickListener { changeQty(item, +1) }
+            h.btnMinus.setOnClickListener { changeQty(item, -1) }
+        }
+
+        inner class VH(v: View) : RecyclerView.ViewHolder(v) {
+            val txtName: TextView = v.findViewById(R.id.txtLineName)
+            val txtQty: TextView = v.findViewById(R.id.txtQty)
+            val txtAmount: TextView = v.findViewById(R.id.txtLineAmount)
+            val btnPlus: TextView = v.findViewById(R.id.btnPlus)
+            val btnMinus: TextView = v.findViewById(R.id.btnMinus)
         }
     }
 }

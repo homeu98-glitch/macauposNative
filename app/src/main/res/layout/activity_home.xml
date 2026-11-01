@@ -1,152 +1,173 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 主畫面 —— web 風格 dashboard:白頂欄 + 大磁貼 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/brand_bg"
-    android:padding="24dp">
+    android:background="@color/bg_screen">
 
+    <!-- 頂欄 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:background="@color/card"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="14dp">
 
-        <TextView
-            android:id="@+id/txtStoreName"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/home_title"
-            android:textColor="@color/text_primary"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtStoreName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/home_title"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/txtOffline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@color/brand_surface"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
+            android:background="@drawable/bg_btn_outline"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="5dp"
             android:text="在線"
             android:textColor="@color/ok_green"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:textStyle="bold" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/txtMeta"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginVertical="16dp"
-        android:background="#2A313B" />
+        android:background="@color/card_border" />
 
+    <!-- 磁貼區 -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="16dp">
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="P0 地基已就位(P1 起逐個模組點亮):"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:layout_marginBottom="12dp" />
-
-            <TextView
-                android:id="@+id/txtModules"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:lineSpacingExtra="6dp"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp" />
-
+            <!-- 落單(最大主按鈕) -->
             <Button
                 android:id="@+id/btnOrder"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="16dp"
-                android:backgroundTint="@color/ok_green"
+                android:layout_height="88dp"
+                android:background="@drawable/bg_btn_accent"
                 android:text="落單(餐牌)"
-                android:textColor="@color/brand_bg"
-                android:textSize="18sp"
+                android:textColor="@color/card"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btnTables"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="10dp"
-                android:backgroundTint="@color/brand_accent"
-                android:text="桌台總覽"
-                android:textColor="@color/text_primary"
-                android:textSize="16sp" />
-
-            <Button
-                android:id="@+id/btnSync"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:backgroundTint="@color/brand_surface"
-                android:text="立即同步"
-                android:textColor="@color/text_primary" />
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnTables"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_btn_outline"
+                    android:text="桌台總覽"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnSync"
+                    android:layout_width="0dp"
+                    android:layout_height="72dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_btn_outline"
+                    android:text="立即同步"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/txtSyncState"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 
-            <Button
-                android:id="@+id/btnPrinter"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:backgroundTint="@color/brand_surface"
-                android:text="打印機設置(LAN)"
-                android:textColor="@color/text_primary" />
+                android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnSelfTest"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="24dp"
-                android:backgroundTint="@color/brand_surface"
-                android:text="打印引擎自檢(生成 ESC/POS 字節)"
-                android:textColor="@color/text_primary" />
+                <Button
+                    android:id="@+id/btnPrinter"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_btn_outline"
+                    android:text="打印機設置(LAN)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnSelfTest"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_btn_outline"
+                    android:text="打印自檢"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/txtSelfTest"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:fontFamily="monospace"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:gravity="center"
+                android:textColor="@color/text_faint"
+                android:textSize="11sp" />
 
             <Button
                 android:id="@+id/btnLogout"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginTop="16dp"
-                android:backgroundTint="@color/brand_surface"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_btn_outline"
                 android:text="登出(清離線憑證)"
-                android:textColor="@color/warn_red" />
+                android:textColor="@color/warn_red"
+                android:textSize="14sp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>
