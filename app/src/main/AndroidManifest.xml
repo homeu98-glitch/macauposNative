@@ -110,5 +110,9 @@
             android:name=".MemberLookupActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".KdsActivity"
+            android:exported="false" />
     </application>
 </manifest>
