@@ -1,172 +1,331 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 落單 —— 1:1 對照 web pos-app 三欄:
-     左 [260-300px] 訂單明細 | 中 [1fr] 餐牌 | 右 [280-330px] 收銀與支付 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 落單工作台 —— 對照 J 提供嘅 web 實機截圖:
+     左深色 icon 導軌 68dp | 訂單明細欄 226dp | 餐牌 1fr | 收銀與支付 240dp -->
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:orientation="horizontal"
+    android:fitsSystemWindows="true"
     android:background="@color/bg_screen">
 
-    <!-- 頂欄(白) -->
+    <!-- ═══ 深色 icon 導軌 ═══ -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@color/card"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="8dp">
+        android:layout_width="68dp"
+        android:layout_height="match_parent"
+        android:background="@color/rail_bg"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingTop="10dp">
 
         <TextView
-            android:id="@+id/btnBack"
             android:layout_width="44dp"
             android:layout_height="44dp"
+            android:background="@drawable/bg_rail_active"
             android:gravity="center"
-            android:text="‹"
-            android:textColor="@color/text_primary"
-            android:textSize="26sp" />
+            android:text="POS"
+            android:textColor="@color/card"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:orientation="vertical">
+        <TextView
+            android:id="@+id/railOrder"
+            android:layout_width="48dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_rail_active"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:text="▤\n點餐"
+            android:textColor="@color/rail_text_active"
+            android:textSize="10sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/txtTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="落單"
-                android:textColor="@color/text_primary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+        <TextView
+            android:id="@+id/railTables"
+            android:layout_width="48dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:text="▦\n桌台"
+            android:textColor="@color/rail_text"
+            android:textSize="10sp" />
 
-            <TextView
-                android:id="@+id/txtSubtitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
-        </LinearLayout>
+        <TextView
+            android:id="@+id/railPrint"
+            android:layout_width="48dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:text="⎙\n打印"
+            android:textColor="@color/rail_text"
+            android:textSize="10sp" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/railOnline"
+            android:layout_width="48dp"
+            android:layout_height="44dp"
+            android:gravity="center"
+            android:text="在線"
+            android:textColor="@color/ok_green"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/railLogout"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:text="登出"
+            android:textColor="@color/rail_text"
+            android:textSize="12sp" />
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/card_border" />
-
-    <!-- 三欄主體 -->
+    <!-- ═══ 左欄:訂單明細 ═══ -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
+        android:layout_width="226dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/card"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="10dp">
 
-        <!-- ═══ 左欄:訂單明細(白)═══ -->
         <LinearLayout
-            android:layout_width="212dp"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:background="@color/card">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="12dp"
-                android:paddingTop="12dp">
+                android:layout_weight="1"
+                android:orientation="vertical">
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:id="@+id/txtStoreName"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="訂單明細"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="門店"
+                    android:textColor="@color/slate_900"
+                    android:textSize="17sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/txtOrderCount"
+                    android:id="@+id/txtStoreNo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 項"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:textColor="@color/text_faint"
+                    android:textSize="11sp" />
             </LinearLayout>
 
-            <EditText
-                android:id="@+id/inputTable"
-                android:layout_width="match_parent"
-                android:layout_height="42dp"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_btn_outline"
-                android:hint="枱號 / 外賣"
-                android:inputType="text"
-                android:paddingHorizontal="10dp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_faint"
-                android:textSize="14sp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_pill_mode"
+                android:paddingHorizontal="9dp"
+                android:paddingVertical="4dp"
+                android:text="快餐模式"
+                android:textColor="@color/slate_700"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="訂單明細"
+                android:textColor="@color/slate_900"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtOrderCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 項"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- 堂食 / 外賣 / 自取 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/btnDineIn"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_selected"
+                android:gravity="center"
+                android:text="堂食"
+                android:textColor="@color/card"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnTakeaway"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_normal"
+                android:gravity="center"
+                android:text="外賣"
+                android:textColor="@color/slate_700"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnPickup"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chip_normal"
+                android:gravity="center"
+                android:text="自取"
+                android:textColor="@color/slate_700"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/inputTable"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_btn_outline"
+            android:hint="枱號"
+            android:inputType="text"
+            android:paddingHorizontal="10dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_faint"
+            android:textSize="14sp" />
+
+        <!-- 購物車 / 空狀態 -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="8dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/cartList"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:layout_marginTop="8dp"
-                android:paddingHorizontal="8dp"
+                android:layout_height="match_parent"
                 android:clipToPadding="false" />
 
             <TextView
+                android:id="@+id/txtEmpty"
                 android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:background="@drawable/bg_empty_state"
+                android:gravity="center"
+                android:padding="10dp"
+                android:text="請從右側商品區加入菜品"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- 全單備註 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="12dp"
-                android:paddingTop="6dp"
+                android:layout_weight="1"
                 android:text="全單備註"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/txtOrderNote"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="10dp"
-                android:background="@drawable/bg_cart_row"
-                android:minHeight="48dp"
-                android:padding="10dp"
-                android:text="(可選)·點一下編輯"
-                android:textColor="@color/text_faint"
-                android:textSize="12sp" />
+                android:id="@+id/btnEditNote"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:background="@drawable/bg_btn_outline"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="編輯"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <View
-            android:layout_width="1dp"
-            android:layout_height="match_parent"
-            android:background="@color/card_border" />
+        <TextView
+            android:id="@+id/txtOrderNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/bg_cart_row"
+            android:minHeight="46dp"
+            android:padding="10dp"
+            android:text="(可選)"
+            android:textColor="@color/text_faint"
+            android:textSize="12sp" />
+    </LinearLayout>
 
-        <!-- ═══ 中欄:餐牌 ═══ -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="@color/card_border" />
+
+    <!-- ═══ 中欄:餐牌 ═══ -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@color/bg_screen">
+
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/bg_screen">
+            android:background="@color/card"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="8dp">
 
-            <!-- 分類 chips + 搜尋(白底條) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@color/card"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="8dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <HorizontalScrollView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:scrollbars="none">
 
                     <LinearLayout
@@ -178,172 +337,220 @@
 
                 <EditText
                     android:id="@+id/txtSearch"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_width="118dp"
+                    android:layout_height="38dp"
+                    android:layout_marginStart="8dp"
                     android:background="@drawable/bg_btn_outline"
                     android:hint="搜尋商品"
                     android:inputType="text"
-                    android:paddingHorizontal="12dp"
+                    android:paddingHorizontal="10dp"
+                    android:singleLine="true"
                     android:textColor="@color/text_primary"
                     android:textColorHint="@color/text_faint"
-                    android:textSize="14sp"
-                    android:singleLine="true" />
+                    android:textSize="12sp" />
             </LinearLayout>
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerMenu"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:padding="8dp"
-                android:clipToPadding="false" />
         </LinearLayout>
 
-        <View
-            android:layout_width="1dp"
-            android:layout_height="match_parent"
-            android:background="@color/card_border" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerMenu"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:padding="6dp" />
+    </LinearLayout>
 
-        <!-- ═══ 右欄:收銀與支付(白)═══ -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="@color/card_border" />
+
+    <!-- ═══ 右欄:收銀與支付 ═══ -->
+    <LinearLayout
+        android:layout_width="240dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/card"
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="收銀與支付"
+            android:textColor="@color/slate_900"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtPayHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="點餐結帳在此；線上／線下訂單見螢幕下方"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+
         <LinearLayout
-            android:layout_width="222dp"
-            android:layout_height="match_parent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_summary"
             android:orientation="vertical"
-            android:background="@color/card"
-            android:padding="12dp">
+            android:padding="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="小計"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/txtSubtotal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MOP 0.00"
+                    android:textColor="@color/slate_900"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="折扣"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/txtDiscount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-MOP 0.00"
+                    android:textColor="@color/slate_900"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="收銀與支付"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/txtPayHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="目前尚未下單，可繼續加菜或送廚房"
+                android:layout_marginTop="10dp"
+                android:text="應收"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp" />
 
-            <!-- 匯總塊(web rounded-3xl bg-slate-50) -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/txtCartTotal"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/bg_summary"
-                android:orientation="vertical"
-                android:padding="14dp">
+                android:text="MOP 0.00"
+                android:textColor="@color/accent"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="小計"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
-
-                    <TextView
-                        android:id="@+id/txtSubtotal"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="MOP0.00"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="折扣"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
-
-                    <TextView
-                        android:id="@+id/txtDiscount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="-MOP0.00"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="10dp"
-                    android:background="@color/card_border" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="應收"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/txtCartTotal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="MOP0.00"
-                    android:textColor="@color/orange_600"
-                    android:textSize="26sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+        <Button
+            android:id="@+id/btnSettle"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_btn_dark"
+            android:text="去結帳"
+            android:textColor="@color/card"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btnSend"
                 android:layout_width="match_parent"
-                android:layout_height="54dp"
-                android:layout_marginTop="10dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_btn_accent"
                 android:enabled="false"
                 android:text="下單"
-                android:textColor="@color/card"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <Button
-                android:id="@+id/btnSettle"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_btn_dark"
-                android:text="去結帳"
-                android:textColor="@color/card"
+                android:textColor="@color/btn_text_on_accent"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/btnClear"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_btn_outline"
-                android:text="清空"
+        <!-- 自動打印 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="自動打印"
                 android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/txtAutoPrint"
+                android:layout_width="36dp"
+                android:layout_height="24dp"
+                android:background="@drawable/bg_pill_on_solid"
+                android:gravity="center"
+                android:text="開"
+                android:textColor="@color/card"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtAutoPrintHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="落單／結帳自動出單"
+            android:textColor="@color/text_faint"
+            android:textSize="10sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnPrintKitchen"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_btn_outline"
+                android:text="打印廚房單"
+                android:textAllCaps="false"
+                android:textColor="@color/slate_900"
+                android:textSize="11sp" />
+
+            <Button
+                android:id="@+id/btnPrintReceipt"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_btn_outline"
+                android:text="打印收據"
+                android:textAllCaps="false"
+                android:textColor="@color/slate_900"
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

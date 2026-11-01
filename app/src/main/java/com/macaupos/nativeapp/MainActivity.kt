@@ -76,6 +76,78 @@ class MainActivity : ComponentActivity() {
         }
 
         btnLogin.setOnClickListener { doLogin() }
+
+        // debug 專用 UI 預覽:用示範餐牌直接入落單頁,方便同 web 逐格對照(唔使真帳號)
+        if (BuildConfig.DEBUG) {
+            findViewById<TextView>(R.id.txtDebugPreview).apply {
+                visibility = View.VISIBLE
+                setOnClickListener { seedDemoAndPreview() }
+            }
+        }
+    }
+
+    /** 寫入示範 bootstrap 快取(對齊 J 截圖菜單),然後開落單頁。 */
+    private fun seedDemoAndPreview() {
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val storeId = deviceStore.storeId.ifBlank { "demo-store" }
+                    deviceStore.storeId = storeId
+                    deviceStore.storeName = "老智牛肉麵 [示範]"
+                    deviceStore.storeAccount = "60000002"
+
+                    val cats = org.json.JSONArray()
+                        .put(JSONObject().put("id", "c1").put("name", "牛肉麵系列"))
+                        .put(JSONObject().put("id", "c2").put("name", "家常系列"))
+                        .put(JSONObject().put("id", "c3").put("name", "湯品"))
+                        .put(JSONObject().put("id", "c4").put("name", "飲品"))
+
+                    fun item(id: String, name: String, price: Double, cat: String) = JSONObject()
+                        .put("id", id).put("name", name).put("price", price)
+                        .put("categoryId", cat).put("printerGroup", "kitchen")
+
+                    val items = org.json.JSONArray()
+                        .put(item("m1", "大麥克牛肉麵", 100.0, "c1"))
+                        .put(item("m2", "酸菜牛肉麵", 75.0, "c1"))
+                        .put(item("m3", "人氣半筋半肉麵", 85.0, "c1"))
+                        .put(item("m4", "招牌牛三寶", 95.0, "c1"))
+                        .put(item("m5", "牛肋條麵", 65.0, "c1"))
+                        .put(item("m6", "牛筋麵", 60.0, "c1"))
+                        .put(item("m7", "牛肚麵", 60.0, "c1"))
+                        .put(item("m8", "原汁牛清湯麵", 30.0, "c3"))
+
+                    val tables = org.json.JSONArray()
+                        .put(JSONObject().put("id", "t1").put("name", "A01").put("area", "一樓"))
+                        .put(JSONObject().put("id", "t2").put("name", "A02").put("area", "一樓"))
+                        .put(JSONObject().put("id", "t3").put("name", "A03").put("area", "一樓"))
+
+                    val payload = JSONObject()
+                        .put("storeId", storeId)
+                        .put("storeName", "老智牛肉麵 [示範]")
+                        .put("currency", "MOP")
+                        .put("categories", cats)
+                        .put("menuItems", items)
+                        .put("tables", tables)
+                        .put("rules", JSONObject().put("taxRate", 0.0).put("serviceChargeRate", 0.0))
+
+                    com.macaupos.nativeapp.data.db.AppDatabase.get(this@MainActivity)
+                        .bootstrapCacheDao()
+                        .put(
+                            com.macaupos.nativeapp.data.db.BootstrapCacheEntity(
+                                storeId = storeId,
+                                storeName = "老智牛肉麵 [示範]",
+                                currency = "MOP",
+                                payload = payload.toString(),
+                                sourceVersion = 1,
+                                fetchedAt = System.currentTimeMillis(),
+                            )
+                        )
+                }
+                startActivity(Intent(this@MainActivity, OrderActivity::class.java))
+            } catch (e: Exception) {
+                txtStatus.text = "預覽失敗:${e.message}"
+            }
+        }
     }
 
     private fun doLogin() {

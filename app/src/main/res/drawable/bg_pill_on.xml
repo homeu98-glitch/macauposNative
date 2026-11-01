@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 開關「開」狀態(截圖:綠色膠囊白字) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/ok_green" />
+    <corners android:radius="999dp" />
+</shape>

@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.macaupos.nativeapp.data.DeviceStore
+import com.macaupos.nativeapp.data.JsonStore
 import com.macaupos.nativeapp.data.db.AppDatabase
 import com.macaupos.nativeapp.data.repo.BootstrapRepository
 import com.macaupos.nativeapp.data.repo.OrderRepository
@@ -35,14 +36,17 @@ import org.json.JSONObject
 import java.util.Locale
 
 /**
- * 落單 —— 1:1 對照 web `pos-app.tsx` 三欄工作台:
+ * 落單工作台 —— 對照 J 提供嘅 **web 實機截圖**(快餐模式):
  *
- *   左 [訂單明細] │ 中 [餐牌:分類 chips + 搜尋 + 菜卡網格] │ 右 [收銀與支付]
+ *   深色導軌 68dp │ 訂單明細 226dp │ 餐牌 1fr │ 收銀與支付 240dp
  *
- * 菜卡:web `min-h-36 rounded-2xl` 白卡 —— 名 3 行、右下「加入」橙藥丸、
- *      已加顯示右上「xN」橙角標(web 2026-10-14 拍板「唔要 + 鈕」)。
- * 購物車行:web `bg-slate-50 rounded-2xl` + 圓形 - qty + 步進(減到 0 移除)。
- * 收銀欄:小計 / 折扣 / 應收(橙 26sp)+「下單」橙 +「去結帳」slate-900。
+ * - 左欄:店名 + 店號 + 「快餐模式」pill → 訂單明細(件數)→ 堂食/外賣/自取 →
+ *   購物車(空 = 虛線框「請從右側商品區加入菜品」)→ 全單備註 + 編輯
+ * - 中欄:分類 chips + 搜尋商品 + 4 欄菜卡(MOP 細字 + 金額大字 + 「加入」藥丸 + xN 角標)
+ * - 右欄:收銀與支付(小計/折扣/應收橙大字)→ 去結帳(深色)→ 下單(橙)→
+ *   自動打印開關 → 打印廚房單 / 打印收據
+ *
+ * ⚠️ 截圖底部「線上訂單 / 線下訂單」面板屬 P2(未實作),呢版未有,唔好假裝有。
  */
 class OrderActivity : ComponentActivity() {
 
@@ -60,6 +64,7 @@ class OrderActivity : ComponentActivity() {
     private lateinit var printService: PrintService
     private lateinit var syncFlusher: SyncFlusher
     private lateinit var deviceStore: DeviceStore
+    private lateinit var prefs: JsonStore
 
     private val cart = LinkedHashMap<String, OrderBuilder.Item>()
     private var menu: List<MenuItemLite> = emptyList()
@@ -68,6 +73,9 @@ class OrderActivity : ComponentActivity() {
     private var selectedCategory: String? = null
     private var searchKeyword = ""
     private var orderNote: String = ""
+    /** dine_in / takeaway / pickup —— 對應左欄三個大掣 */
+    private var fulfillment = "dine_in"
+    private var autoPrint = true
 
     private var existingOrderId: String? = null
     private var existingOrder: com.macaupos.nativeapp.data.db.PosOrderEntity? = null
@@ -79,8 +87,12 @@ class OrderActivity : ComponentActivity() {
     private lateinit var txtCartTotal: TextView
     private lateinit var txtPayHint: TextView
     private lateinit var txtOrderNote: TextView
+    private lateinit var txtEmpty: TextView
     private lateinit var btnSend: Button
-    private lateinit var txtSubtitle: TextView
+    private lateinit var btnDineIn: TextView
+    private lateinit var btnTakeaway: TextView
+    private lateinit var btnPickup: TextView
+    private lateinit var inputTable: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,18 +104,28 @@ class OrderActivity : ComponentActivity() {
         orderRepo = OrderRepository(this, db)
         printService = PrintService(this)
         syncFlusher = SyncFlusher(this, db)
+        prefs = JsonStore(this, "order-ui.json")
 
         txtOrderCount = findViewById(R.id.txtOrderCount)
         txtSubtotal = findViewById(R.id.txtSubtotal)
         txtCartTotal = findViewById(R.id.txtCartTotal)
         txtPayHint = findViewById(R.id.txtPayHint)
         txtOrderNote = findViewById(R.id.txtOrderNote)
+        txtEmpty = findViewById(R.id.txtEmpty)
         btnSend = findViewById(R.id.btnSend)
-        txtSubtitle = findViewById(R.id.txtSubtitle)
+        btnDineIn = findViewById(R.id.btnDineIn)
+        btnTakeaway = findViewById(R.id.btnTakeaway)
+        btnPickup = findViewById(R.id.btnPickup)
+        inputTable = findViewById(R.id.inputTable)
+
+        findViewById<TextView>(R.id.txtStoreName).text =
+            deviceStore.storeName.ifBlank { "門店" }
+        findViewById<TextView>(R.id.txtStoreNo).text =
+            deviceStore.storeAccount.ifBlank { deviceStore.storeId.take(8) }
 
         menuAdapter = MenuAdapter { item -> addToCart(item) }
         findViewById<RecyclerView>(R.id.recyclerMenu).apply {
-            layoutManager = GridLayoutManager(this@OrderActivity, 3)
+            layoutManager = GridLayoutManager(this@OrderActivity, 4)
             adapter = menuAdapter
         }
 
@@ -113,20 +135,57 @@ class OrderActivity : ComponentActivity() {
             adapter = cartAdapter
         }
 
-        findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
-        findViewById<Button>(R.id.btnClear).setOnClickListener {
-            cart.clear(); renderCart()
+        // ── 左側深色導軌 ──
+        findViewById<TextView>(R.id.railTables).setOnClickListener {
+            startActivity(Intent(this, TablesActivity::class.java))
         }
+        findViewById<TextView>(R.id.railPrint).setOnClickListener { showPrinterDialog() }
+        findViewById<TextView>(R.id.railOnline).setOnClickListener {
+            Toast.makeText(this, "在線 · 網絡正常", Toast.LENGTH_SHORT).show()
+        }
+        findViewById<TextView>(R.id.railLogout).setOnClickListener {
+            JsonStore(this, "offline-credential.json").clear()
+            finish()
+        }
+
+        btnDineIn.setOnClickListener { setFulfillment("dine_in") }
+        btnTakeaway.setOnClickListener { setFulfillment("takeaway") }
+        btnPickup.setOnClickListener { setFulfillment("pickup") }
+        setFulfillment("dine_in")
+
         btnSend.setOnClickListener { sendOrder() }
         findViewById<Button>(R.id.btnSettle).setOnClickListener {
             val o = existingOrder
             if (o != null) {
                 startActivity(Intent(this, OrderDetailActivity::class.java).putExtra("orderId", o.id))
-            } else {
+            } else if (cart.isNotEmpty()) {
                 Toast.makeText(this, "先「下單」送廚房，之後再結帳", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "購物車未有任何菜品", Toast.LENGTH_SHORT).show()
             }
         }
+        findViewById<TextView>(R.id.btnEditNote).setOnClickListener { editOrderNote() }
         txtOrderNote.setOnClickListener { editOrderNote() }
+
+        // 自動打印開關(存本機)
+        autoPrint = prefs.read()?.optBoolean("autoPrint", true) ?: true
+        val txtAuto = findViewById<TextView>(R.id.txtAutoPrint)
+        fun renderAuto() {
+            txtAuto.text = if (autoPrint) "開" else "關"
+            txtAuto.setBackgroundResource(if (autoPrint) R.drawable.bg_pill_on else R.drawable.bg_pill_light)
+            txtAuto.setTextColor(getColor(if (autoPrint) R.color.card else R.color.orange_600))
+            findViewById<TextView>(R.id.txtAutoPrintHint).text =
+                if (autoPrint) "落單／結帳自動出單" else "已關閉 · 唔會自動出單"
+        }
+        renderAuto()
+        txtAuto.setOnClickListener {
+            autoPrint = !autoPrint
+            prefs.write(JSONObject().put("autoPrint", autoPrint))
+            renderAuto()
+        }
+
+        findViewById<Button>(R.id.btnPrintKitchen).setOnClickListener { printKitchenNow() }
+        findViewById<Button>(R.id.btnPrintReceipt).setOnClickListener { printReceiptNow() }
 
         findViewById<EditText>(R.id.txtSearch).addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -141,19 +200,17 @@ class OrderActivity : ComponentActivity() {
             }
         })
 
-        // 加菜模式:預填枱號 + 載入既有單
+        // 加菜模式 / 由桌台帶枱號入嚟
         intent.getStringExtra("tableName")?.takeIf { it.isNotBlank() }?.let {
-            val input = findViewById<EditText>(R.id.inputTable)
-            input.setText(it)
-            input.isEnabled = false
-            findViewById<TextView>(R.id.txtTitle).text = "加菜 · $it"
+            inputTable.setText(it)
+            inputTable.isEnabled = false
         }
         existingOrderId = intent.getStringExtra("existingOrderId")
         existingOrderId?.let { oid ->
             lifecycleScope.launch {
                 existingOrder = withContext(Dispatchers.IO) { orderRepo.byId(oid) }
                 existingOrder?.let {
-                    findViewById<EditText>(R.id.inputTable).setText(it.tableName ?: "")
+                    inputTable.setText(it.tableName ?: "")
                     txtPayHint.text = "待加菜單號 ${it.localOrderNo}"
                     Toast.makeText(this@OrderActivity, "加菜模式:${it.localOrderNo}", Toast.LENGTH_SHORT).show()
                 }
@@ -161,6 +218,28 @@ class OrderActivity : ComponentActivity() {
         }
 
         loadMenu()
+    }
+
+    // ---- 堂食 / 外賣 / 自取 ----
+
+    private fun setFulfillment(kind: String) {
+        fulfillment = kind
+        listOf(
+            btnDineIn to "dine_in",
+            btnTakeaway to "takeaway",
+            btnPickup to "pickup",
+        ).forEach { (tv, k) ->
+            val on = k == kind
+            tv.setBackgroundResource(if (on) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+            tv.setTextColor(getColor(if (on) R.color.card else R.color.slate_700))
+        }
+        inputTable.visibility = if (kind == "dine_in") View.VISIBLE else View.GONE
+    }
+
+    private fun fulfillmentLabel(): String = when (fulfillment) {
+        "takeaway" -> "外賣"
+        "pickup" -> "自取"
+        else -> "堂食"
     }
 
     // ---- 餐牌 ----
@@ -204,13 +283,12 @@ class OrderActivity : ComponentActivity() {
                 .map { it.optString("id", "") to it.optString("name", "") }
                 .filter { it.first.isNotBlank() }
         }
-        txtSubtitle.text = "全部菜品 · ${menu.size} 項"
         renderCategoryChips()
         applyFilter()
         renderCart()
     }
 
-    /** 分類 chips(web: h-10 rounded-full px-4 text-sm;選中 orange-500 白字)。 */
+    /** 分類 chips(截圖:選中橙底白字,未選灰底 slate-700;h-10 px-4 rounded-full)。 */
     private fun renderCategoryChips() {
         val bar = findViewById<LinearLayout>(R.id.chipsCategory)
         bar.removeAllViews()
@@ -282,19 +360,20 @@ class OrderActivity : ComponentActivity() {
             bootstrap?.taxRate, bootstrap?.serviceChargeRate,
         )
         val currency = bootstrap?.currency ?: "MOP"
-        fun money(v: Double) = String.format(Locale.US, "%s%.2f", currency, v)
+        fun money(v: Double) = String.format(Locale.US, "%s %.2f", currency, v)
 
-        txtOrderCount.text = "$count 件"
+        txtOrderCount.text = "$count 項"
         txtSubtotal.text = money(totals.subtotal)
         txtCartTotal.text = money(totals.total)
+        txtEmpty.visibility = if (lines.isEmpty()) View.VISIBLE else View.GONE
+        txtOrderNote.visibility = if (lines.isEmpty()) View.GONE else View.VISIBLE
         btnSend.isEnabled = count > 0
         txtPayHint.text = when {
             existingOrder != null -> "待加菜單號 ${existingOrder?.localOrderNo}"
-            count == 0 -> "目前尚未下單，可繼續加菜或送廚房"
-            else -> "購物車 $count 件，送廚房後可結帳"
+            count == 0 -> "點餐結帳在此；線上／線下訂單見螢幕下方"
+            else -> "${fulfillmentLabel()} · $count 項，送廚房後可結帳"
         }
         cartAdapter.submit(lines)
-        // 菜卡右上「xN」角標要跟住更新
         menuAdapter.refreshBadges(cartQtyMap())
     }
 
@@ -308,11 +387,80 @@ class OrderActivity : ComponentActivity() {
             .setView(input)
             .setPositiveButton("確定") { _, _ ->
                 orderNote = input.text.toString().trim()
-                txtOrderNote.text = orderNote.ifBlank { "(可選)·點一下編輯" }
+                txtOrderNote.text = orderNote.ifBlank { "(可選)" }
                 txtOrderNote.setTextColor(getColor(if (orderNote.isBlank()) R.color.text_faint else R.color.text_primary))
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    // ---- 打印 ----
+
+    private fun showPrinterDialog() {
+        val store = PrinterStore(this)
+        val input = EditText(this).apply {
+            hint = "打印機 IP(例 192.168.1.100)"
+            setText(store.ip)
+            setSingleLine(true)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("打印機設置(LAN raw 9100)")
+            .setView(input)
+            .setPositiveButton("保存") { _, _ ->
+                store.ip = input.text.toString().trim()
+                Toast.makeText(this, if (store.hasPrinter()) "已設定:${store.ip}:${store.port}" else "已清除", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /** 手動打印廚房單(不受自動打印開關影響 —— web 手動優先)。 */
+    private fun printKitchenNow() {
+        if (cart.isEmpty()) {
+            Toast.makeText(this, "購物車未有任何菜品", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val payload = JSONObject()
+            .put("id", "preview-" + System.currentTimeMillis())
+            .put("tableName", if (fulfillment == "dine_in") inputTable.text.toString().ifBlank { "堂食" } else fulfillmentLabel())
+            .put("ticketType", "kitchen")
+            .put("items", JSONArray().also { arr ->
+                cart.values.forEach {
+                    arr.put(JSONObject().put("name", it.name).put("quantity", it.quantity).put("price", it.price))
+                }
+            })
+        lifecycleScope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (PrinterStore(applicationContext).hasPrinter()) printService.printKitchenTicket(payload)
+                    else { printService.renderKitchenBytes(payload); Result.success(Unit) }
+                }.getOrElse { Result.failure(it) }
+            }
+            Toast.makeText(
+                this@OrderActivity,
+                r.fold({ "廚房單已打印" }, { "打印失敗:${it.message}" }),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun printReceiptNow() {
+        val o = existingOrder
+        if (o == null) {
+            Toast.makeText(this, "尚未有已下單嘅單可以打收據", Toast.LENGTH_SHORT).show()
+            return
+        }
+        lifecycleScope.launch {
+            val r = withContext(Dispatchers.IO) {
+                runCatching { printService.printReceipt(orderRepo.orderRowJson(o), o.paymentMethod ?: "現金", o.total) }
+                    .getOrElse { Result.failure(it) }
+            }
+            Toast.makeText(
+                this@OrderActivity,
+                r.fold({ "收據已打印" }, { "打印失敗:${it.message}" }),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     // ---- 送單 ----
@@ -346,7 +494,7 @@ class OrderActivity : ComponentActivity() {
                         .put("items", newItemsOnly(updated, itemsJson, items))
                     val printResult = withContext(Dispatchers.IO) {
                         runCatching {
-                            if (PrinterStore(applicationContext).hasPrinter()) printService.printKitchenTicket(addonJob)
+                            if (autoPrint && PrinterStore(applicationContext).hasPrinter()) printService.printKitchenTicket(addonJob)
                             else Result.success(Unit)
                         }.getOrElse { Result.failure(it) }
                     }
@@ -356,7 +504,7 @@ class OrderActivity : ComponentActivity() {
                         btnSend.isEnabled = true
                         Toast.makeText(
                             this@OrderActivity,
-                            "✓ 加菜已落單 ${updated.localOrderNo}" + printResult.fold({ " · 已打印" }, { " · ⚠ 打印:${it.message}" }),
+                            "✓ 加菜已落單 ${updated.localOrderNo}" + printResult.fold({ if (autoPrint) " · 已打印" else "" }, { " · ⚠ 打印:${it.message}" }),
                             Toast.LENGTH_LONG
                         ).show()
                         finish()
@@ -365,8 +513,10 @@ class OrderActivity : ComponentActivity() {
                 }
 
                 // ── 新單 ──
-                val tableName = findViewById<EditText>(R.id.inputTable).text.toString().trim().ifBlank { "外賣" }
-                val fulfillment = if (tableName.contains("外賣", true) || tableName.contains("takeaway", true)) "takeaway" else "dine_in"
+                val tableName = when (fulfillment) {
+                    "dine_in" -> inputTable.text.toString().trim().ifBlank { "堂食" }
+                    else -> fulfillmentLabel()
+                }
                 val localNo = orderRepo.nextLocalOrderNo()
                 val built = OrderBuilder.build(
                     storeId = deviceStore.storeId,
@@ -388,7 +538,7 @@ class OrderActivity : ComponentActivity() {
 
                 val printResult = withContext(Dispatchers.IO) {
                     runCatching {
-                        if (PrinterStore(applicationContext).hasPrinter()) printService.printKitchenTicket(built.payload)
+                        if (autoPrint && PrinterStore(applicationContext).hasPrinter()) printService.printKitchenTicket(built.payload)
                         else { printService.renderKitchenBytes(built.payload); Result.success(Unit) }
                     }.getOrElse { Result.failure(it) }
                 }
@@ -400,7 +550,10 @@ class OrderActivity : ComponentActivity() {
                     btnSend.isEnabled = true
                     val msg = buildString {
                         append("✓ ${built.order.localOrderNo} 已收單")
-                        printResult.fold({ append(" · 廚房單已打印") }, { append(" · ⚠ 打印:${it.message}") })
+                        printResult.fold(
+                            { if (autoPrint) append(" · 廚房單已打印") },
+                            { append(" · ⚠ 打印:${it.message}") },
+                        )
                     }
                     Toast.makeText(this@OrderActivity, msg, Toast.LENGTH_LONG).show()
                     finish()
@@ -449,9 +602,9 @@ class OrderActivity : ComponentActivity() {
 
         override fun onBindViewHolder(h: VH, pos: Int) {
             val item = items[pos]
-            val currency = bootstrap?.currency ?: "MOP"
+            h.txtCurrency.text = bootstrap?.currency ?: "MOP"
             h.txtName.text = item.name
-            h.txtPrice.text = String.format(Locale.US, "%s%.2f", currency, item.price)
+            h.txtPrice.text = String.format(Locale.US, "%.2f", item.price)
             val qty = badges[item.id] ?: 0
             h.txtBadge.visibility = if (qty > 0) View.VISIBLE else View.GONE
             h.txtBadge.text = "x$qty"
@@ -461,6 +614,7 @@ class OrderActivity : ComponentActivity() {
         inner class VH(v: View) : RecyclerView.ViewHolder(v) {
             val txtName: TextView = v.findViewById(R.id.txtName)
             val txtPrice: TextView = v.findViewById(R.id.txtPrice)
+            val txtCurrency: TextView = v.findViewById(R.id.txtCurrency)
             val txtBadge: TextView = v.findViewById(R.id.txtBadge)
         }
     }

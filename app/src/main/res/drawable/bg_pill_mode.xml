@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 快餐模式/在線 標籤(截圖:淺灰圓膠囊) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#F1F5F9" />
+    <corners android:radius="999dp" />
+</shape>

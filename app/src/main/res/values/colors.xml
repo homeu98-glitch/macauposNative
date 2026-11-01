@@ -36,4 +36,9 @@
     <color name="orange_600">#EA580C</color>
     <color name="slate_900">#0F172A</color>
     <color name="slate_700">#334155</color>
+
+    <!-- 左側深色 icon 導軌(截圖:近黑底 + 灰字 + 選中橙色方塊) -->
+    <color name="rail_bg">#0B1220</color>
+    <color name="rail_text">#94A3B8</color>
+    <color name="rail_text_active">#FFFFFF</color>
 </resources>

@@ -109,5 +109,17 @@
             android:minHeight="20dp"
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
+
+        <!-- debug 專用:UI 預覽(示範餐牌),release 由代碼隱藏 -->
+        <TextView
+            android:id="@+id/txtDebugPreview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:paddingVertical="6dp"
+            android:text="UI 預覽(示範餐牌 · debug)"
+            android:textColor="@color/text_faint"
+            android:textSize="11sp"
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>
