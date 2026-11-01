@@ -97,5 +97,13 @@
         <activity
             android:name=".DeliveryActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".PrintCenterActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".StaffActivity"
+            android:exported="false" />
     </application>
 </manifest>
