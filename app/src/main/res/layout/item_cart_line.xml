@@ -1,71 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 購物車一行:名+小計 / 數量步進(- qty +),按鈕 40dp -->
+<!-- 購物車行(web: rounded-2xl border-slate-100 bg-slate-50 px-3 py-3;
+     名 + 規格/單價副行;右側圓形 - qty + 步進) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="6dp"
+    android:background="@drawable/bg_cart_row"
     android:orientation="vertical"
-    android:paddingVertical="6dp">
-
-    <TextView
-        android:id="@+id/txtLineName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="菜品名"
-        android:textColor="@color/text_primary"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+    android:padding="10dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtLineName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="菜品名"
+                android:textColor="@color/slate_900"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtLineSpec"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="未選規格 · MOP0.00"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/btnMinus"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_qty_btn"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_stepper"
             android:gravity="center"
             android:text="−"
-            android:textColor="@color/card"
-            android:textSize="20sp"
+            android:textColor="@color/slate_700"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/txtQty"
-            android:layout_width="0dp"
+            android:layout_width="28dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:gravity="center"
             android:text="1"
             android:textColor="@color/text_primary"
-            android:textSize="17sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/btnPlus"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_qty_btn"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_stepper"
             android:gravity="center"
-            android:text="＋"
-            android:textColor="@color/card"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/txtLineAmount"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:minWidth="76dp"
-            android:text="MOP0.00"
-            android:textColor="@color/text_primary"
-            android:textSize="14sp"
+            android:text="+"
+            android:textColor="@color/slate_700"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/txtLineAmount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:gravity="end"
+        android:text="MOP0.00"
+        android:textColor="@color/text_primary"
+        android:textSize="12sp"
+        android:textStyle="bold" />
 </LinearLayout>

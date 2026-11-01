@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 有單桌卡狀態膠囊(web: bg-white/25 text-white) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/white_25" />
+    <corners android:radius="999dp" />
+</shape>

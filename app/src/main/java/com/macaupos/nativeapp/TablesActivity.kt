@@ -19,15 +19,15 @@ import com.macaupos.nativeapp.data.repo.BootstrapRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
- * P1-B 桌台總覽 —— 桌源 = bootstrap `tables`(StoreTable:{id,name,area});
- * 每枱狀態由本地 Room 未結帳單判斷(sent_to_kitchen/paid/reopened = 有單)。
- * 點枱:有單 → 訂單詳情(加菜/結帳);冇單 → 新單(OrderActivity 預填枱號)。
+ * 桌台總覽 —— 1:1 對照 web `pos-app.tsx` 桌台模式:
+ *
+ * - 桌卡:空閒 = 白底;有單 = **實底橙** + 白字(web cardTone)
+ * - 右上白色「訂單號」角標(有單先出)
+ * - 內容:枱名 → 區域 → 應收 → 狀態膠囊(bg-white/25 白字 / bg-orange-50 橙字)
+ * - 網格:3 → 4 欄(平板 4 欄,對齊 web md:grid-cols-4)
  */
 class TablesActivity : ComponentActivity() {
 
@@ -53,9 +53,10 @@ class TablesActivity : ComponentActivity() {
         txtSyncHint = findViewById(R.id.txtSyncHint)
 
         adapter = TableAdapter()
-        val recycler = findViewById<RecyclerView>(R.id.recyclerTables)
-        recycler.layoutManager = GridLayoutManager(this, 4)
-        recycler.adapter = adapter
+        findViewById<RecyclerView>(R.id.recyclerTables).apply {
+            layoutManager = GridLayoutManager(this@TablesActivity, 4)
+            adapter = this@TablesActivity.adapter
+        }
 
         findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener {
@@ -66,6 +67,7 @@ class TablesActivity : ComponentActivity() {
             }
         }
 
+        txtSyncHint.text = "點開桌子後進入點餐介面。桌台狀態:空閒 / 已下單"
         reload()
     }
 
@@ -100,11 +102,7 @@ class TablesActivity : ComponentActivity() {
                     .filter { !it.tableName.isNullOrBlank() }
                     .associateBy { it.tableName!! }
             }
-            txtSyncHint.text = String.format(
-                Locale.US, "開放中 %d 張 · %s",
-                openByTable.size,
-                SimpleDateFormat("HH:mm", Locale.US).format(Date()),
-            )
+            txtSyncHint.text = "點開桌子後進入點餐介面 · 開放中 ${openByTable.size} 張 · 全部 ${tables.size} 張枱"
             adapter.notifyDataSetChanged()
         }
     }
@@ -112,9 +110,7 @@ class TablesActivity : ComponentActivity() {
     private fun openTable(table: TableLite) {
         val open = openByTable[table.name]
         if (open != null) {
-            startActivity(
-                Intent(this, OrderDetailActivity::class.java).putExtra("orderId", open.id)
-            )
+            startActivity(Intent(this, OrderDetailActivity::class.java).putExtra("orderId", open.id))
         } else {
             startActivity(
                 Intent(this, OrderActivity::class.java)
@@ -122,6 +118,15 @@ class TablesActivity : ComponentActivity() {
                     .putExtra("newForTable", true)
             )
         }
+    }
+
+    private fun statusLabel(status: String): String = when (status) {
+        "settled" -> "已結帳"
+        "paid" -> "已結帳 / 待收尾"
+        "reopened" -> "待重結"
+        "sent_to_kitchen" -> "已下單"
+        "draft" -> "未下單"
+        else -> "空閒"
     }
 
     private inner class TableAdapter : RecyclerView.Adapter<TableAdapter.VH>() {
@@ -137,18 +142,35 @@ class TablesActivity : ComponentActivity() {
             h.txtTableName.text = t.name
             if (open != null) {
                 h.itemView.setBackgroundResource(R.drawable.bg_table_occupied)
-                h.txtState.text = "有單 ${open.localOrderNo} · MOP${String.format(Locale.US, "%.2f", open.total)}"
-                h.txtState.setTextColor(getColor(R.color.accent_deep))
+                h.txtTableName.setTextColor(getColor(R.color.card))
+                h.txtArea.text = t.area ?: ""
+                h.txtArea.setTextColor(getColor(R.color.white_85))
+                h.txtOrderBadge.visibility = View.VISIBLE
+                h.txtOrderBadge.text = open.localOrderNo
+                h.txtDue.visibility = View.VISIBLE
+                h.txtDue.text = String.format(Locale.US, "應收 MOP%.2f", open.total)
+                h.txtState.setBackgroundResource(R.drawable.bg_pill_on_solid)
+                h.txtState.setTextColor(getColor(R.color.card))
+                h.txtState.text = statusLabel(open.status)
             } else {
                 h.itemView.setBackgroundResource(R.drawable.bg_table_free)
-                h.txtState.text = t.area?.let { "空閒 · $it" } ?: "空閒"
-                h.txtState.setTextColor(getColor(R.color.ok_green))
+                h.txtTableName.setTextColor(getColor(R.color.slate_900))
+                h.txtArea.text = t.area ?: ""
+                h.txtArea.setTextColor(getColor(R.color.text_secondary))
+                h.txtOrderBadge.visibility = View.GONE
+                h.txtDue.visibility = View.GONE
+                h.txtState.setBackgroundResource(R.drawable.bg_pill_light)
+                h.txtState.setTextColor(getColor(R.color.orange_600))
+                h.txtState.text = "空閒"
             }
             h.itemView.setOnClickListener { openTable(t) }
         }
 
         inner class VH(v: View) : RecyclerView.ViewHolder(v) {
             val txtTableName: TextView = v.findViewById(R.id.txtTableName)
+            val txtOrderBadge: TextView = v.findViewById(R.id.txtOrderBadge)
+            val txtArea: TextView = v.findViewById(R.id.txtArea)
+            val txtDue: TextView = v.findViewById(R.id.txtDue)
             val txtState: TextView = v.findViewById(R.id.txtState)
         }
     }

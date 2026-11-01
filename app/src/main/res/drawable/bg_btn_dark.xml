@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 深色次要按鈕(web 去結帳: bg-slate-900 text-white rounded-2xl) -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/slate_700" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/slate_900" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+</selector>

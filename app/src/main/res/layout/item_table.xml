@@ -1,35 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 桌卡:空閒 = 白卡;有單 = orange-50 卡(代碼切 background);≥100dp -->
+<!-- 桌卡(web: rounded-2xl p-4;有單實底橙/白字,空閒白底;
+     右上白色訂單號角標;枱名 → 區域 → 應收 → 狀態膠囊) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="5dp"
-    android:minHeight="104dp"
     android:background="@drawable/bg_table_free"
-    android:foreground="?android:attr/selectableItemBackground"
-    android:gravity="center_vertical"
+    android:minHeight="112dp"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/txtTableName"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/txtTableName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="A1"
+            android:textColor="@color/slate_900"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/txtOrderBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_order_badge"
+            android:paddingHorizontal="7dp"
+            android:paddingVertical="2dp"
+            android:text="訂單1"
+            android:textColor="@color/orange_600"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/txtArea"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="A1"
-        android:textColor="@color/text_primary"
-        android:textSize="19sp"
-        android:textStyle="bold" />
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/txtDue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="應收 MOP0.00"
+        android:textColor="@color/card"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/txtState"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="2"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_pill_light"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="3dp"
         android:text="空閒"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp" />
+        android:textColor="@color/orange_600"
+        android:textSize="11sp"
+        android:textStyle="bold" />
 </LinearLayout>

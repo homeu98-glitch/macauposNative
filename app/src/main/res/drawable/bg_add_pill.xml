@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「加入」藥丸(web: bg-orange-50 text-orange-600 rounded-full) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/orange_50" />
+    <corners android:radius="999dp" />
+</shape>

@@ -26,4 +26,14 @@
     <color name="brand_surface">#FFFFFF</color>
     <color name="brand_accent">#F97316</color>
     <color name="brand_accent_deep">#EA580C</color>
+
+    <!-- ═══ web 細節補充 ═══ -->
+    <color name="white">#FFFFFF</color>
+    <color name="white_85">#D9FFFFFF</color>
+    <color name="white_25">#40FFFFFF</color>
+    <color name="slate_50">#F8FAFC</color>
+    <color name="orange_50">#FFF7ED</color>
+    <color name="orange_600">#EA580C</color>
+    <color name="slate_900">#0F172A</color>
+    <color name="slate_700">#334155</color>
 </resources>
