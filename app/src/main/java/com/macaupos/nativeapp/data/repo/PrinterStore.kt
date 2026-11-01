@@ -33,18 +33,40 @@ class PrinterStore(context: Context) {
         get() = store.read()?.optString("paperSize", "58") ?: "58"
         set(v) = update { it.put("paperSize", v) }
 
-    fun hasPrinter(): Boolean = ip.isNotBlank()
+    /** "lan" | "bluetooth"(同 web PrinterCfg.connectionType) */
+    var connectionType: String
+        get() = store.read()?.optString("connectionType", "lan") ?: "lan"
+        set(v) = update { it.put("connectionType", v) }
 
-    /** 轉成打印引擎要嘅 `PrinterCfgDto`(connectionType=lan → raw socket 9100 路徑)。 */
+    /** 藍牙打印機 MAC(connectionType=bluetooth 時用) */
+    var btAddress: String
+        get() = store.read()?.optString("btAddress", "") ?: ""
+        set(v) = update { it.put("btAddress", v) }
+
+    fun hasPrinter(): Boolean =
+        if (connectionType == "bluetooth") btAddress.isNotBlank() else ip.isNotBlank()
+
+    /** 轉成打印引擎要嘅 `PrinterCfgDto`。 */
     fun toCfg(): PrinterCfgDto = PrinterCfgDto.fromJson(
-        JSONObject()
-            .put("id", "local-lan")
-            .put("name", name.ifBlank { "LAN 打印機" })
-            .put("connectionType", "lan")
-            .put("ipAddress", ip)
-            .put("lanPort", port)
-            .put("charset", charset)
-            .put("paperSize", paperSize)
+        if (connectionType == "bluetooth") {
+            JSONObject()
+                .put("id", "local-bt")
+                .put("name", name.ifBlank { "藍牙打印機" })
+                .put("connectionType", "bluetooth")
+                .put("bluetoothAddress", btAddress)
+                .put("key", btAddress)
+                .put("charset", charset)
+                .put("paperSize", paperSize)
+        } else {
+            JSONObject()
+                .put("id", "local-lan")
+                .put("name", name.ifBlank { "LAN 打印機" })
+                .put("connectionType", "lan")
+                .put("ipAddress", ip)
+                .put("lanPort", port)
+                .put("charset", charset)
+                .put("paperSize", paperSize)
+        }
     )
 
     private inline fun update(block: (JSONObject) -> Unit) {

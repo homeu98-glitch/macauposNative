@@ -142,7 +142,9 @@ class OrderActivity : ComponentActivity() {
         findViewById<TextView>(R.id.railTables).setOnClickListener {
             startActivity(Intent(this, TablesActivity::class.java))
         }
-        findViewById<TextView>(R.id.railPrint).setOnClickListener { showPrinterDialog() }
+        findViewById<TextView>(R.id.railPrint).setOnClickListener {
+            startActivity(Intent(this, PrinterWizardActivity::class.java))
+        }
         findViewById<TextView>(R.id.railOnline).setOnClickListener {
             Toast.makeText(this, "在線 · 網絡正常", Toast.LENGTH_SHORT).show()
         }
