@@ -64,6 +64,9 @@ class HomeActivity : ComponentActivity() {
         findViewById<Button>(R.id.btnReport).setOnClickListener {
             startActivity(Intent(this, ReportActivity::class.java))
         }
+        findViewById<Button>(R.id.btnInventory).setOnClickListener {
+            startActivity(Intent(this, InventoryActivity::class.java))
+        }
         findViewById<Button>(R.id.btnMenuAdmin).setOnClickListener {
             startActivity(Intent(this, MenuAdminActivity::class.java))
         }
