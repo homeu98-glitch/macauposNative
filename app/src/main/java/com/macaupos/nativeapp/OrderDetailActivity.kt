@@ -148,19 +148,69 @@ class OrderDetailActivity : ComponentActivity() {
 
     private fun showSettleDialog() {
         val o = order ?: return
+        val labels = arrayOf("無折扣", "九折(減 10%)", "八五折(減 15%)", "自訂折扣金額", "抹零到整數", "抹零到角")
         AlertDialog.Builder(this)
-            .setTitle("結帳 ${o.localOrderNo} · MOP${String.format(Locale.US, "%.2f", o.total)}")
-            .setItems(paymentMethods.toTypedArray()) { _, which ->
-                settle(paymentMethods[which])
+            .setTitle("結帳 ${o.localOrderNo} · 應收 MOP" + String.format(Locale.US, "%.2f", o.total))
+            .setItems(labels) { _, which ->
+                when (which) {
+                    0 -> pickPayment(o, null)
+                    1 -> pickPayment(o, com.macaupos.nativeapp.domain.Discounts.Mode.Percent(10.0))
+                    2 -> pickPayment(o, com.macaupos.nativeapp.domain.Discounts.Mode.Percent(15.0))
+                    3 -> {
+                        val input = android.widget.EditText(this).apply {
+                            hint = "折扣金額(例 10)"
+                            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                        }
+                        AlertDialog.Builder(this)
+                            .setTitle("自訂折扣金額")
+                            .setView(input)
+                            .setPositiveButton("確定") { _, _ ->
+                                val v = input.text.toString().trim().toDoubleOrNull()
+                                if (v == null || v < 0) {
+                                    Toast.makeText(this, "請輸入有效金額", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    pickPayment(o, com.macaupos.nativeapp.domain.Discounts.Mode.Amount(v))
+                                }
+                            }
+                            .setNegativeButton("取消", null)
+                            .show()
+                    }
+                    4 -> pickPayment(o, com.macaupos.nativeapp.domain.Discounts.Mode.RoundDown(1.0))
+                    5 -> pickPayment(o, com.macaupos.nativeapp.domain.Discounts.Mode.RoundDown(0.1))
+                }
             }
             .setNegativeButton("取消", null)
             .show()
     }
 
-    private fun settle(method: String) {
+    /** 折扣後再揀付款方式(應收已係折後金額)。 */
+    private fun pickPayment(o: com.macaupos.nativeapp.data.db.PosOrderEntity, mode: com.macaupos.nativeapp.domain.Discounts.Mode?) {
+        val applied = com.macaupos.nativeapp.domain.Discounts.apply(o.total, mode)
+        val title = String.format(
+            Locale.US,
+            "應收 MOP %.2f%s%s",
+            applied.payable,
+            if (applied.discount > 0) String.format(Locale.US, " · 折扣 %.2f", applied.discount) else "",
+            if (applied.rounding > 0) String.format(Locale.US, " · 抹零 %.2f", applied.rounding) else "",
+        )
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setItems(paymentMethods.toTypedArray()) { _, which ->
+                settle(paymentMethods[which], applied)
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun settle(method: String, applied: com.macaupos.nativeapp.domain.Discounts.Applied) {
         val o = order ?: return
         lifecycleScope.launch {
-            val result = orderRepo.settleOrder(o, method, receivedAmount = o.total)
+            val result = orderRepo.settleOrder(
+                o, method,
+                receivedAmount = applied.payable,
+                discountAmount = applied.discount,
+                rounding = applied.rounding,
+            )
             result.onSuccess { settled ->
                 // 即打收據 + flush
                 val printResult = withContext(Dispatchers.IO) {

@@ -72,12 +72,23 @@ class OrderRepository(context: Context, private val db: AppDatabase) {
         order: PosOrderEntity,
         paymentMethod: String,
         receivedAmount: Double,
+        /** 全單折扣(已計好金額;由 Discounts.apply 出) */
+        discountAmount: Double = 0.0,
+        /** 抹零金額(由 Discounts.apply 出,唔計入折扣) */
+        rounding: Double = 0.0,
     ): Result<PosOrderEntity> = runCatching {
         val now = System.currentTimeMillis()
-        val change = (receivedAmount - order.total).coerceAtLeast(0.0)
+        val payable = com.macaupos.nativeapp.domain.ReportStats.round2(
+            (order.total - discountAmount - rounding).coerceAtLeast(0.0)
+        )
+        val change = (receivedAmount - payable).coerceAtLeast(0.0)
         val settled = order.copy(
             status = "settled",
             paymentMethod = paymentMethod,
+            total = payable,
+            discountAmount = com.macaupos.nativeapp.domain.ReportStats.round2(
+                order.discountAmount + discountAmount + rounding
+            ),
             settledAt = now,
             receivedAmount = receivedAmount,
             changeDue = change,
