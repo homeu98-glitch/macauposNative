@@ -87,6 +87,9 @@ class LedgerOrdersClient(private val deviceStore: DeviceStore) {
     fun markPaid(orderId: String): kotlin.Result<Unit> =
         call("set_order_paid_in_store", JSONObject().put("p_order_id", orderId))
 
+    /** 通用 RPC(會員查詢等共用同一套 token / refresh 邏輯)。 */
+    fun rpcJson(fn: String, body: JSONObject): Pair<Int, String>? = rpc(fn, body)
+
     // ---- 內部 ----
 
     private fun call(fn: String, body: JSONObject): kotlin.Result<Unit> {

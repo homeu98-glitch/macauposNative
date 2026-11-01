@@ -105,5 +105,10 @@
         <activity
             android:name=".StaffActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".MemberLookupActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

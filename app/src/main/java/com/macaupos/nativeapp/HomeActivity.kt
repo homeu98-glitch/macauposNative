@@ -79,6 +79,9 @@ class HomeActivity : ComponentActivity() {
         findViewById<Button>(R.id.btnStaff).setOnClickListener {
             startActivity(Intent(this, StaffActivity::class.java))
         }
+        findViewById<Button>(R.id.btnMember).setOnClickListener {
+            startActivity(Intent(this, MemberLookupActivity::class.java))
+        }
         findViewById<Button>(R.id.btnPrinter).setOnClickListener { showPrinterDialog() }
         findViewById<Button>(R.id.btnSync).setOnClickListener { runSync() }
         findViewById<Button>(R.id.btnLogout).setOnClickListener { showLogoutDialog() }
