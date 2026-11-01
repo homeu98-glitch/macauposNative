@@ -93,5 +93,9 @@
         <activity
             android:name=".OnlineOrdersActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".DeliveryActivity"
+            android:exported="false" />
     </application>
 </manifest>
