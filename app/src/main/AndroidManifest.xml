@@ -84,5 +84,10 @@
         <activity
             android:name=".ReportActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".MenuAdminActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>
