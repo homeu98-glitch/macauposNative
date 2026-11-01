@@ -114,5 +114,10 @@
         <activity
             android:name=".KdsActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".PrintTemplatesActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

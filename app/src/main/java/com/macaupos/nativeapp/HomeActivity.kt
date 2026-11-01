@@ -85,6 +85,9 @@ class HomeActivity : ComponentActivity() {
         findViewById<Button>(R.id.btnKds).setOnClickListener {
             startActivity(Intent(this, KdsActivity::class.java))
         }
+        findViewById<Button>(R.id.btnPrintTemplates).setOnClickListener {
+            startActivity(Intent(this, PrintTemplatesActivity::class.java))
+        }
         findViewById<Button>(R.id.btnPrinter).setOnClickListener { showPrinterDialog() }
         findViewById<Button>(R.id.btnSync).setOnClickListener { runSync() }
         findViewById<Button>(R.id.btnLogout).setOnClickListener { showLogoutDialog() }
