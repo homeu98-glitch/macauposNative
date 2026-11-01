@@ -165,6 +165,24 @@ class OrderRepository(context: Context, private val db: AppDatabase) {
     }
 
     /**
+     * 對帳用:將一張本機單重新排隊(標 pending + 補一條 ORDER_UPDATED)。
+     * 用於「雲端查唔到本機單」嘅修復(web reconcile 同一招)。
+     */
+    suspend fun requeue(orderId: String): Result<Unit> = runCatching {
+        val order = db.posOrderDao().byId(orderId) ?: throw IllegalStateException("本機冇呢張單")
+        val now = System.currentTimeMillis()
+        db.posOrderDao().setSyncState(orderId, "pending")
+        db.syncOutboxDao().enqueue(
+            SyncOutboxEntity(
+                kind = "ORDER_UPDATED",
+                dedupeKey = "requeue:${order.id}:${now}",
+                payload = JSONObject().put("order", orderRowJson(order)).toString(),
+                createdAt = now,
+            )
+        )
+    }
+
+    /**
      * 加菜 —— 對齊 web 加菜語意:
      * - 新 items 附加落 order.items;金額重計;**status 保留**(paid/reopened 唔可以倒退 ——
      *   web 3129 行起嗰段鐵律:加菜只係加內容,唔改變已收錢事實)

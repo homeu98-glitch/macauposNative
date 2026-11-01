@@ -109,8 +109,19 @@
                     android:text="立即同步"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:longClickable="true" />
             </LinearLayout>
+
+            <Button
+                android:id="@+id/btnSyncHealth"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_btn_outline"
+                android:text="同步健康 · 對帳"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/txtSyncState"

@@ -92,6 +92,9 @@ class HomeActivity : ComponentActivity() {
             startActivity(Intent(this, PrinterWizardActivity::class.java))
         }
         findViewById<Button>(R.id.btnSync).setOnClickListener { runSync() }
+        findViewById<Button>(R.id.btnSyncHealth).setOnClickListener {
+            startActivity(Intent(this, SyncHealthActivity::class.java))
+        }
         findViewById<Button>(R.id.btnLogout).setOnClickListener { showLogoutDialog() }
 
         // 開頁即試 flush + 顯示 pending 狀態
