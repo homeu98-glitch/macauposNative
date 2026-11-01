@@ -77,7 +77,7 @@ class OrderActivity : ComponentActivity() {
 
         db = AppDatabase.get(this)
         deviceStore = DeviceStore(this)
-        bootstrapRepo = BootstrapRepository(db)
+        bootstrapRepo = BootstrapRepository(applicationContext, db)
         orderRepo = OrderRepository(this, db)
         printService = PrintService(this)
         syncFlusher = SyncFlusher(this, db)

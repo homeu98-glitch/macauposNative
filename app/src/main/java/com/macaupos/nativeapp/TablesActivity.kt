@@ -48,7 +48,7 @@ class TablesActivity : ComponentActivity() {
         setContentView(R.layout.activity_tables)
 
         db = AppDatabase.get(this)
-        bootstrapRepo = BootstrapRepository(db)
+        bootstrapRepo = BootstrapRepository(applicationContext, db)
         deviceStore = DeviceStore(this)
         txtSyncHint = findViewById(R.id.txtSyncHint)
 
