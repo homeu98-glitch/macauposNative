@@ -143,7 +143,12 @@ class MainActivity : ComponentActivity() {
                             )
                         )
                 }
-                startActivity(Intent(this@MainActivity, OrderActivity::class.java))
+                // debug:入 Home(唔使帳號),再由 Home 撳「落單」睇餐牌
+                startActivity(
+                    Intent(this@MainActivity, HomeActivity::class.java)
+                        .putExtra("operator", "預覽")
+                        .putExtra("offline", true)
+                )
             } catch (e: Exception) {
                 txtStatus.text = "預覽失敗:${e.message}"
             }
