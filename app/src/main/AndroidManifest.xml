@@ -70,5 +70,15 @@
         <activity
             android:name=".OrderDetailActivity"
             android:exported="false" />
+
+        <activity
+            android:name=".ShiftActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".SoldOutActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

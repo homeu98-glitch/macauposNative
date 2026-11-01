@@ -65,6 +65,8 @@ class OrderActivity : ComponentActivity() {
     private lateinit var syncFlusher: SyncFlusher
     private lateinit var deviceStore: DeviceStore
     private lateinit var prefs: JsonStore
+    private lateinit var soldOutStore: com.macaupos.nativeapp.data.SoldOutStore
+    private var soldOut: Map<String, com.macaupos.nativeapp.data.SoldOutStore.State> = emptyMap()
 
     private val cart = LinkedHashMap<String, OrderBuilder.Item>()
     private var menu: List<MenuItemLite> = emptyList()
@@ -105,6 +107,7 @@ class OrderActivity : ComponentActivity() {
         printService = PrintService(this)
         syncFlusher = SyncFlusher(this, db)
         prefs = JsonStore(this, "order-ui.json")
+        soldOutStore = com.macaupos.nativeapp.data.SoldOutStore(this)
 
         txtOrderCount = findViewById(R.id.txtOrderCount)
         txtSubtotal = findViewById(R.id.txtSubtotal)
@@ -286,6 +289,15 @@ class OrderActivity : ComponentActivity() {
         renderCategoryChips()
         applyFilter()
         renderCart()
+        refreshSoldOut()
+    }
+
+    /** 沽清狀態(本機,同 web `loadSoldOutState()` 同一份語意)。 */
+    private fun refreshSoldOut() {
+        lifecycleScope.launch {
+            soldOut = withContext(Dispatchers.IO) { soldOutStore.all() }
+            applyFilter()
+        }
     }
 
     /** 分類 chips(截圖:選中橙底白字,未選灰底 slate-700;h-10 px-4 rounded-full)。 */
@@ -324,7 +336,7 @@ class OrderActivity : ComponentActivity() {
         val base = if (selectedCategory == null) menu else menu.filter { it.categoryId == selectedCategory }
         val list = if (searchKeyword.isBlank()) base
         else base.filter { it.name.contains(searchKeyword, ignoreCase = true) }
-        menuAdapter.submit(list, cartQtyMap())
+        menuAdapter.submit(list, cartQtyMap(), soldOut)
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
@@ -334,6 +346,17 @@ class OrderActivity : ComponentActivity() {
     // ---- 購物車 ----
 
     private fun addToCart(item: MenuItemLite) {
+        val st = soldOut[item.id]
+        if (st?.soldOut == true) {
+            Toast.makeText(this, "${item.name} 已沽清", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val remaining = st?.remainingQty
+        val inCart = cart[item.id]?.quantity ?: 0
+        if (remaining != null && inCart >= remaining) {
+            Toast.makeText(this, "${item.name} 只剩 $remaining 份", Toast.LENGTH_SHORT).show()
+            return
+        }
         val existing = cart[item.id]
         cart[item.id] = OrderBuilder.Item(
             menuItemId = item.id,
@@ -583,10 +606,16 @@ class OrderActivity : ComponentActivity() {
 
         private var items: List<MenuItemLite> = emptyList()
         private var badges: Map<String, Int> = emptyMap()
+        private var soldOutMap: Map<String, com.macaupos.nativeapp.data.SoldOutStore.State> = emptyMap()
 
-        fun submit(list: List<MenuItemLite>, badgeMap: Map<String, Int>) {
+        fun submit(
+            list: List<MenuItemLite>,
+            badgeMap: Map<String, Int>,
+            soldOutState: Map<String, com.macaupos.nativeapp.data.SoldOutStore.State> = emptyMap(),
+        ) {
             items = list
             badges = badgeMap
+            soldOutMap = soldOutState
             notifyDataSetChanged()
         }
 
@@ -608,6 +637,14 @@ class OrderActivity : ComponentActivity() {
             val qty = badges[item.id] ?: 0
             h.txtBadge.visibility = if (qty > 0) View.VISIBLE else View.GONE
             h.txtBadge.text = "x$qty"
+            val st = soldOutMap[item.id]
+            val isSoldOut = st?.soldOut == true
+            h.txtAdd.text = when {
+                isSoldOut -> "售罄"
+                st?.remainingQty != null -> "只剩 ${st.remainingQty} 份"
+                else -> "加入"
+            }
+            h.itemView.alpha = if (isSoldOut) 0.55f else 1f
             h.itemView.setOnClickListener { onClick(item) }
         }
 
@@ -615,6 +652,7 @@ class OrderActivity : ComponentActivity() {
             val txtName: TextView = v.findViewById(R.id.txtName)
             val txtPrice: TextView = v.findViewById(R.id.txtPrice)
             val txtCurrency: TextView = v.findViewById(R.id.txtCurrency)
+            val txtAdd: TextView = v.findViewById(R.id.txtAdd)
             val txtBadge: TextView = v.findViewById(R.id.txtBadge)
         }
     }

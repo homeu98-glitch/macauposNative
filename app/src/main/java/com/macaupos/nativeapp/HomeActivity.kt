@@ -55,6 +55,12 @@ class HomeActivity : ComponentActivity() {
             startActivity(Intent(this, TablesActivity::class.java))
         }
         findViewById<Button>(R.id.btnSelfTest).setOnClickListener { runPrintSelfTest() }
+        findViewById<Button>(R.id.btnShift).setOnClickListener {
+            startActivity(Intent(this, ShiftActivity::class.java).putExtra("operator", operator))
+        }
+        findViewById<Button>(R.id.btnSoldOut).setOnClickListener {
+            startActivity(Intent(this, SoldOutActivity::class.java))
+        }
         findViewById<Button>(R.id.btnPrinter).setOnClickListener { showPrinterDialog() }
         findViewById<Button>(R.id.btnSync).setOnClickListener { runSync() }
         findViewById<Button>(R.id.btnLogout).setOnClickListener { showLogoutDialog() }
