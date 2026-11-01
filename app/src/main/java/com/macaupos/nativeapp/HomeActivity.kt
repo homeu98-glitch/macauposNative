@@ -67,6 +67,9 @@ class HomeActivity : ComponentActivity() {
         findViewById<Button>(R.id.btnMenuAdmin).setOnClickListener {
             startActivity(Intent(this, MenuAdminActivity::class.java))
         }
+        findViewById<Button>(R.id.btnOnlineOrders).setOnClickListener {
+            startActivity(Intent(this, OnlineOrdersActivity::class.java))
+        }
         findViewById<Button>(R.id.btnPrinter).setOnClickListener { showPrinterDialog() }
         findViewById<Button>(R.id.btnSync).setOnClickListener { runSync() }
         findViewById<Button>(R.id.btnLogout).setOnClickListener { showLogoutDialog() }

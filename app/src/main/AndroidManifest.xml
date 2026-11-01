@@ -89,5 +89,9 @@
             android:name=".MenuAdminActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".OnlineOrdersActivity"
+            android:exported="false" />
     </application>
 </manifest>

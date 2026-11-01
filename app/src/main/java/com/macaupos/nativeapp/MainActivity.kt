@@ -281,6 +281,11 @@ class MainActivity : ComponentActivity() {
         deviceStore.storeAccount = session.optString("account", deviceStore.storeAccount)
         session.optString("posDeviceToken", "").takeIf { it.isNotBlank() }
             ?.let { deviceStore.posDeviceToken = it }
+        // Ledger 會話(線上訂單 RPC 需要)
+        session.optString("ledgerAccessToken", "").takeIf { it.isNotBlank() }
+            ?.let { deviceStore.ledgerAccessToken = it }
+        session.optString("ledgerRefreshToken", "").takeIf { it.isNotBlank() }
+            ?.let { deviceStore.ledgerRefreshToken = it }
 
         // ③ 本機重新派生驗證器(唔存 server 嘅 pinHash —— dump 走部機只影響呢部機一個身份)
         //    PBKDF2 120k 迭代 + 檔案寫入,搬去 IO thread,唔好卡 main

@@ -42,6 +42,15 @@ class DeviceStore(context: Context) {
         get() = store.read()?.optString("posDeviceToken", "") ?: ""
         set(value) = update { it.put("posDeviceToken", value) }
 
+    /** Ledger 會話 token(session.ledgerAccessToken)—— 線上訂單 RPC 用 */
+    var ledgerAccessToken: String
+        get() = store.read()?.optString("ledgerAccessToken", "") ?: ""
+        set(value) = update { it.put("ledgerAccessToken", value) }
+
+    var ledgerRefreshToken: String
+        get() = store.read()?.optString("ledgerRefreshToken", "") ?: ""
+        set(value) = update { it.put("ledgerRefreshToken", value) }
+
     /** 已初始化(有齊 deviceId + deviceSecret)= 裝置模式,唔使打帳號。 */
     fun isBound(): Boolean = deviceId.length >= 8 && deviceSecret.isNotBlank()
 
