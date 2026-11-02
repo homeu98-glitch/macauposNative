@@ -102,6 +102,20 @@ class HomeActivity : ComponentActivity() {
 
         // 開頁即試 flush + 顯示 pending 狀態
         runSync(silent = true)
+
+        // 順手拉一次打印模板做本機快取(離線都用得;失敗唔阻)
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    when (val r = com.macaupos.nativeapp.data.repo.PrintTemplatesClient(deviceStore).fetch()) {
+                        is com.macaupos.nativeapp.data.repo.PrintTemplatesClient.Result.Ok ->
+                            com.macaupos.nativeapp.data.repo.TemplateStore(this@HomeActivity)
+                                .save(r.snapshot.templates)
+                        else -> Unit
+                    }
+                }
+            }
+        }
     }
 
     private fun showPrinterDialog() {

@@ -56,6 +56,9 @@ class PrintTemplatesActivity : ComponentActivity() {
             when (r) {
                 is PrintTemplatesClient.Result.Ok -> {
                     templates = r.snapshot.templates
+                    // 本機快取(建 job 時附模板用)
+                    com.macaupos.nativeapp.data.repo.TemplateStore(this@PrintTemplatesActivity)
+                        .save(r.snapshot.templates)
                     slotOrder = buildSlots(r.snapshot.templates)
                     findViewById<TextView>(R.id.txtHint).text = when {
                         !r.snapshot.found -> "雲端未設定過模板(用預設)"
@@ -129,6 +132,7 @@ class PrintTemplatesActivity : ComponentActivity() {
             val r = withContext(Dispatchers.IO) { client.save(root) }
             r.onSuccess {
                 templates = root
+                com.macaupos.nativeapp.data.repo.TemplateStore(this@PrintTemplatesActivity).save(root)
                 Toast.makeText(this@PrintTemplatesActivity, "✓ 模板已同步到雲端", Toast.LENGTH_SHORT).show()
                 load()
             }.onFailure {
