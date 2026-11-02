@@ -93,6 +93,11 @@
             android:name=".OnlineOrdersActivity"
             android:exported="false" />
 
+        <!-- 訂單頁(/orders = web OrdersHub):左線上 + 右線下 -->
+        <activity
+            android:name=".OrdersActivity"
+            android:exported="false" />
+
         <activity
             android:name=".DeliveryActivity"
             android:exported="false" />

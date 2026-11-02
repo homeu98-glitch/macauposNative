@@ -37,8 +37,16 @@
     <color name="slate_900">#0F172A</color>
     <color name="slate_700">#334155</color>
 
-    <!-- 左側深色 icon 導軌(截圖:近黑底 + 灰字 + 選中橙色方塊) -->
-    <color name="rail_bg">#0B1220</color>
-    <color name="rail_text">#94A3B8</color>
+    <!-- 左側深色 icon 導軌(對齊 web AppSidebar:bg-slate-900 底) -->
+    <color name="rail_bg">#0F172A</color>               <!-- slate-900 -->
+    <color name="rail_text">#E2E8F0</color>             <!-- slate-200 -->
     <color name="rail_text_active">#FFFFFF</color>
+    <color name="rail_item_bg">#1E293B</color>          <!-- slate-800 未選中底色 -->
+    <color name="rail_item_hover">#334155</color>       <!-- slate-700 -->
+    <color name="rail_divider">#334155</color>          <!-- slate-700 分隔線 -->
+    <color name="rail_icon_bg">#1AFFFFFF</color>        <!-- white/10 圓形徽章底 -->
+
+    <!-- 底部店名卡/登出 -->
+    <color name="slate_200">#E2E8F0</color>
+    <color name="slate_400">#94A3B8</color>
 </resources>

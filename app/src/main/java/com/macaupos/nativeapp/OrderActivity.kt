@@ -126,6 +126,11 @@ class OrderActivity : ComponentActivity() {
         findViewById<TextView>(R.id.txtStoreNo).text =
             deviceStore.storeAccount.ifBlank { deviceStore.storeId.take(8) }
 
+        // ── 頂部 pill 動態:快餐/堂食按 workbench mode(唔再寫死「快餐模式」)──
+        val workbenchMode = JsonStore(this, "workbench.json").read()?.optString("mode", "") ?: ""
+        val isQuick = workbenchMode == "quick"
+        findViewById<TextView>(R.id.txtModePill).text = if (isQuick) "快餐模式" else "堂食"
+
         menuAdapter = MenuAdapter { item -> addToCart(item) }
         findViewById<RecyclerView>(R.id.recyclerMenu).apply {
             layoutManager = GridLayoutManager(this@OrderActivity, 4)
@@ -180,6 +185,9 @@ class OrderActivity : ComponentActivity() {
         findViewById<Button>(R.id.btnPrintKitchen).setOnClickListener { printKitchenNow() }
         findViewById<Button>(R.id.btnPrintReceipt).setOnClickListener { printReceiptNow() }
 
+        // ── 底部兩窗:線上訂單 / 線下訂單(對齊 web QuickModeOrdersBar)──
+        setupQuickOrdersBar()
+
         findViewById<EditText>(R.id.txtSearch).addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -211,6 +219,146 @@ class OrderActivity : ComponentActivity() {
         }
 
         loadMenu()
+    }
+
+    // ---- 底部兩窗:線上訂單 / 線下訂單 ----
+
+    private fun setupQuickOrdersBar() {
+        val onlineClient = com.macaupos.nativeapp.data.repo.LedgerOrdersClient(deviceStore)
+        val stripOnline = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerOnlineStrip)
+        val stripLocal = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerLocalStrip)
+        stripOnline.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        stripLocal.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+
+        var onlineAdapter: QuickStripAdapter? = null
+        onlineAdapter = QuickStripAdapter { o ->
+            // 撳 = 接單(未接單) / 完成(已接單)
+            lifecycleScope.launch {
+                val r = withContext(Dispatchers.IO) {
+                    if (o.status == "pending") onlineClient.accept(o.id)
+                    else onlineClient.updateStatus(o.id, "completed")
+                }
+                r.onSuccess { refreshQuickOnline(onlineClient, onlineAdapter ?: return@onSuccess) }
+                    .onFailure { Toast.makeText(this@OrderActivity, "更新失敗:${it.message}", Toast.LENGTH_SHORT).show() }
+            }
+        }
+        stripOnline.adapter = onlineAdapter
+
+        val localAdapter = QuickLocalStripAdapter { o ->
+            startActivity(Intent(this, OrderDetailActivity::class.java).putExtra("orderId", o.id))
+        }
+        stripLocal.adapter = localAdapter
+
+        findViewById<TextView>(R.id.btnOnlineToggle).setOnClickListener {
+            Toast.makeText(this, "線上接單開關(用 web 端管理)", Toast.LENGTH_SHORT).show()
+        }
+        findViewById<TextView>(R.id.btnLocalToggle).setOnClickListener {
+            Toast.makeText(this, "線下接單 = 店內營業總掣", Toast.LENGTH_SHORT).show()
+        }
+
+        refreshQuickOnline(onlineClient, onlineAdapter)
+        refreshQuickLocal(localAdapter)
+    }
+
+    private fun refreshQuickOnline(
+        client: com.macaupos.nativeapp.data.repo.LedgerOrdersClient,
+        adapter: QuickStripAdapter,
+    ) {
+        val empty = findViewById<TextView>(R.id.txtOnlineEmpty)
+        val strip = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerOnlineStrip)
+        lifecycleScope.launch {
+            val r = withContext(Dispatchers.IO) { client.list() }
+            val orders = when (r) {
+                is com.macaupos.nativeapp.data.repo.LedgerOrdersClient.Result.Ok ->
+                    r.orders.filter { it.status != "completed" && it.status != "cancelled" }
+                else -> emptyList()
+            }
+            withContext(Dispatchers.Main) {
+                adapter.submit(orders)
+                empty.visibility = if (orders.isEmpty()) View.VISIBLE else View.GONE
+                strip.visibility = if (orders.isEmpty()) View.GONE else View.VISIBLE
+                if (r is com.macaupos.nativeapp.data.repo.LedgerOrdersClient.Result.Fail && orders.isEmpty()) {
+                    empty.text = "載入失敗:${r.error}"
+                }
+            }
+        }
+    }
+
+    private fun refreshQuickLocal(adapter: QuickLocalStripAdapter) {
+        val empty = findViewById<TextView>(R.id.txtLocalEmpty)
+        val strip = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerLocalStrip)
+        lifecycleScope.launch {
+            val orders = withContext(Dispatchers.IO) {
+                db.posOrderDao().openOrders(deviceStore.storeId)
+            }
+            withContext(Dispatchers.Main) {
+                adapter.submit(orders)
+                empty.visibility = if (orders.isEmpty()) View.VISIBLE else View.GONE
+                strip.visibility = if (orders.isEmpty()) View.GONE else View.VISIBLE
+            }
+        }
+    }
+
+    /** 底部線上訂單 strip adapter(橫向卡片)。 */
+    private inner class QuickStripAdapter(
+        private val onClick: (com.macaupos.nativeapp.data.repo.LedgerOrdersClient.OnlineOrder) -> Unit,
+    ) : RecyclerView.Adapter<QuickStripAdapter.VH>() {
+        private var items: List<com.macaupos.nativeapp.data.repo.LedgerOrdersClient.OnlineOrder> = emptyList()
+        fun submit(l: List<com.macaupos.nativeapp.data.repo.LedgerOrdersClient.OnlineOrder>) {
+            items = l; notifyDataSetChanged()
+        }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
+            VH(LayoutInflater.from(parent.context).inflate(R.layout.item_quick_order_strip, parent, false))
+        override fun getItemCount(): Int = items.size
+        override fun onBindViewHolder(h: VH, pos: Int) {
+            val o = items[pos]
+            h.title.text = o.pickupCode?.let { "取餐碼 $it" } ?: "#" + o.id.takeLast(6)
+            h.badge.text = when (o.status) {
+                "pending" -> "待接單"; "accepted" -> "已接單"; "preparing" -> "製作中"; "ready" -> "可取餐"; else -> o.status
+            }
+            h.meta.text = o.itemSummary ?: "—"
+            h.amount.text = String.format(Locale.US, "MOP %.2f", o.total)
+            h.action.text = if (o.status == "pending") "接單" else "完成"
+            h.itemView.setOnClickListener { onClick(o) }
+        }
+        inner class VH(v: View) : RecyclerView.ViewHolder(v) {
+            val title: TextView = v.findViewById(R.id.txtTitle)
+            val badge: TextView = v.findViewById(R.id.txtBadge)
+            val meta: TextView = v.findViewById(R.id.txtMeta)
+            val amount: TextView = v.findViewById(R.id.txtAmount)
+            val action: TextView = v.findViewById(R.id.btnAction)
+        }
+    }
+
+    /** 底部線下訂單 strip adapter(本機 open orders)。 */
+    private inner class QuickLocalStripAdapter(
+        private val onClick: (com.macaupos.nativeapp.data.db.PosOrderEntity) -> Unit,
+    ) : RecyclerView.Adapter<QuickLocalStripAdapter.VH>() {
+        private var items: List<com.macaupos.nativeapp.data.db.PosOrderEntity> = emptyList()
+        fun submit(l: List<com.macaupos.nativeapp.data.db.PosOrderEntity>) {
+            items = l; notifyDataSetChanged()
+        }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
+            VH(LayoutInflater.from(parent.context).inflate(R.layout.item_quick_order_strip, parent, false))
+        override fun getItemCount(): Int = items.size
+        override fun onBindViewHolder(h: VH, pos: Int) {
+            val o = items[pos]
+            h.title.text = o.localOrderNo
+            h.badge.text = when (o.status) {
+                "sent_to_kitchen" -> "製作中"; "settled" -> "已結帳"; "reopened" -> "待重結"; else -> o.status
+            }
+            h.meta.text = o.tableName?.let { "枱 $it" }.orEmpty()
+            h.amount.text = String.format(Locale.US, "MOP %.2f", o.total)
+            h.action.text = "查看"
+            h.itemView.setOnClickListener { onClick(o) }
+        }
+        inner class VH(v: View) : RecyclerView.ViewHolder(v) {
+            val title: TextView = v.findViewById(R.id.txtTitle)
+            val badge: TextView = v.findViewById(R.id.txtBadge)
+            val meta: TextView = v.findViewById(R.id.txtMeta)
+            val amount: TextView = v.findViewById(R.id.txtAmount)
+            val action: TextView = v.findViewById(R.id.btnAction)
+        }
     }
 
     // ---- 堂食 / 外賣 / 自取 ----

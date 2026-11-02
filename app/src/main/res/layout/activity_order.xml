@@ -10,6 +10,18 @@
 
     <!-- 左側 rail(共用,view_rail.xml) -->
     <include layout="@layout/view_rail" />
+    <!-- ═══ 右側內容區(垂直):三欄(上)+底部兩窗(下)═══ -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
 
     <!-- ═══ 左欄:訂單明細 ═══ -->
     <LinearLayout
@@ -53,6 +65,7 @@
             </LinearLayout>
 
             <TextView
+                android:id="@+id/txtModePill"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_pill_mode"
@@ -474,5 +487,11 @@
                 android:textColor="@color/slate_900"
                 android:textSize="11sp" />
         </LinearLayout>
+    </LinearLayout>
+        </LinearLayout>
+
+        <!-- 底部兩窗:線上訂單 / 線下訂單 -->
+        <include layout="@layout/view_quick_orders_bar" />
+
     </LinearLayout>
 </LinearLayout>
