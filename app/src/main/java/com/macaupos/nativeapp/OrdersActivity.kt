@@ -32,10 +32,15 @@ class OrdersActivity : ComponentActivity() {
     private lateinit var client: LedgerOrdersClient
     private lateinit var db: AppDatabase
     private lateinit var deviceStore: DeviceStore
+    private var onlineAll: List<LedgerOrdersClient.OnlineOrder> = emptyList()
+    private var localAll: List<PosOrderEntity> = emptyList()
     private var online: List<LedgerOrdersClient.OnlineOrder> = emptyList()
     private var local: List<PosOrderEntity> = emptyList()
     private lateinit var onlineAdapter: OnlineAdapter
     private lateinit var localAdapter: LocalAdapter
+
+    /** 日期篩選:today / yesterday / 7d / 30d / all(對齊 web LEDGER_ORDER_DATE_FILTERS) */
+    private var dateFilter = "today"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,20 +64,156 @@ class OrdersActivity : ComponentActivity() {
             layoutManager = LinearLayoutManager(this@OrdersActivity)
             adapter = localAdapter
         }
+
+        renderDateChips()
+        findViewById<TextView>(R.id.btnExportOnline).setOnClickListener { exportOnline() }
+        findViewById<TextView>(R.id.btnExportLocal).setOnClickListener { exportLocal() }
         load()
     }
 
+    // ---- 日期篩選 chips ----
+
+    private val DATE_OPTIONS = listOf(
+        "today" to "今天", "yesterday" to "昨天", "7d" to "7 天內", "30d" to "30 天", "all" to "全部",
+    )
+
+    private fun renderDateChips() {
+        val bar = findViewById<android.widget.LinearLayout>(R.id.chipsDate)
+        bar.removeAllViews()
+        DATE_OPTIONS.forEach { (key, label) ->
+            val selected = key == dateFilter
+            val tv = TextView(this).apply {
+                text = label
+                minHeight = dp(36)
+                gravity = android.view.Gravity.CENTER
+                setPadding(dp(14), dp(6), dp(14), dp(6))
+                textSize = 12f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.slate_700))
+                background = getDrawable(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    dateFilter = key
+                    renderDateChips()
+                    applyDateFilter()
+                }
+            }
+            val lp = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.marginEnd = dp(6)
+            bar.addView(tv, lp)
+        }
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    private fun dateStartMs(): Long {
+        val now = System.currentTimeMillis()
+        val day = 24 * 60 * 60 * 1000L
+        // 澳門時區粗略對齊(UTC+8)
+        val tz = 8 * 60 * 60 * 1000L
+        val local = now + tz
+        val dayStartLocal = local / day * day - tz
+        return when (dateFilter) {
+            "today" -> dayStartLocal
+            "yesterday" -> dayStartLocal - day
+            "7d" -> dayStartLocal - 6 * day
+            "30d" -> dayStartLocal - 29 * day
+            else -> 0L
+        }
+    }
+
+    private fun applyDateFilter() {
+        val since = dateStartMs()
+        online = if (dateFilter == "all") onlineAll
+        else onlineAll.filter { o ->
+            val t = o.createdAt?.let { parseIsoMs(it) } ?: 0L
+            t == 0L || t >= since
+        }
+        local = localAll.filter { it.createdAt >= since }
+        onlineAdapter.notifyDataSetChanged()
+        localAdapter.notifyDataSetChanged()
+        renderHints()
+    }
+
+    private fun parseIsoMs(s: String): Long = runCatching {
+        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).parse(s)?.time ?: 0L
+    }.getOrDefault(0L).also { if (it == 0L) runCatching { java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).parse(s)?.time ?: 0L }.getOrDefault(0L) }
+
+    private fun renderHints() {
+        findViewById<TextView>(R.id.txtOnlineHint).text =
+            "待處理 ${online.count { it.status == "pending" }} · 共 ${online.size}"
+        findViewById<TextView>(R.id.txtLocalHint).text = "共 ${local.size} 單"
+        findViewById<TextView>(R.id.btnExportOnline).text = "匯出線上單 (${online.size})"
+        findViewById<TextView>(R.id.btnExportLocal).text = "匯出線下單 (${local.size})"
+    }
+
+    // ---- 匯出 CSV ----
+
+    private fun exportOnline() {
+        if (online.isEmpty()) {
+            Toast.makeText(this, "冇線上訂單可以匯出", Toast.LENGTH_SHORT).show(); return
+        }
+        val sb = StringBuilder("單號,客人,客人電話,類型,菜品,金額,狀態,付款狀態,下單時間\n")
+        online.forEach { o ->
+            sb.append(csv(listOf(
+                o.pickupCode?.let { "取餐碼 $it" } ?: o.id.take(8),
+                o.customerName ?: "",
+                o.phone ?: "",
+                when (o.fulfillmentType) { "delivery" -> "外送"; "pickup" -> "外賣自取"; else -> "堂食" },
+                (o.itemSummary ?: "").replace(",", "，"),
+                String.format(Locale.US, "%.2f", o.total),
+                o.status,
+                if (o.paymentStatus == "paid") "已付款" else "未付款",
+                o.createdAt ?: "",
+            ))).append("\n")
+        }
+        saveCsv("線上訂單_$dateFilter", sb.toString())
+    }
+
+    private fun exportLocal() {
+        if (local.isEmpty()) {
+            Toast.makeText(this, "冇線下訂單可以匯出", Toast.LENGTH_SHORT).show(); return
+        }
+        val sb = StringBuilder("單號,枱號,狀態,付款方式,金額,下單時間\n")
+        local.forEach { o ->
+            sb.append(csv(listOf(
+                o.localOrderNo, o.tableName ?: "", localStatusLabel(o.status),
+                o.paymentMethod ?: "", String.format(Locale.US, "%.2f", o.total),
+                java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(o.createdAt),
+            ))).append("\n")
+        }
+        saveCsv("線下訂單_$dateFilter", sb.toString())
+    }
+
+    private fun csv(cols: List<String>): String =
+        cols.joinToString(",") { "\"" + it.replace("\"", "\"\"") + "\"" }
+
+    private fun saveCsv(name: String, content: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val f = java.io.File(getExternalFilesDir(null), "$name.csv")
+            runCatching { f.writeText("\uFEFF$content") }
+            runCatching {
+                val p = java.io.File(getExternalFilesDir(null), "$name.csv")
+                Toast.makeText(
+                    this@OrdersActivity,
+                    "已匯出:${p.absolutePath}", Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     private fun load() {
-        findViewById<TextView>(R.id.txtHint).text = "載入中…"
         lifecycleScope.launch {
             // 線上單(Ledger)
             val r = withContext(Dispatchers.IO) { client.list() }
             when (r) {
                 is LedgerOrdersClient.Result.Ok -> {
-                    online = r.orders.filter { it.status != "completed" && it.status != "cancelled" }
-                    findViewById<TextView>(R.id.txtOnlineHint).text =
-                        "待處理 ${online.count { it.status == "pending" }} · 共 ${online.size}"
-                    onlineAdapter.notifyDataSetChanged()
+                    onlineAll = r.orders.filter { it.status != "completed" && it.status != "cancelled" }
+                    if (r is LedgerOrdersClient.Result.Fail) {
+                        findViewById<TextView>(R.id.txtOnlineHint).text = "載入失敗:${r.error}"
+                    }
                 }
                 is LedgerOrdersClient.Result.Offline ->
                     findViewById<TextView>(R.id.txtOnlineHint).text = "離線:載入唔到線上訂單"
@@ -81,14 +222,11 @@ class OrdersActivity : ComponentActivity() {
             }
 
             // 線下單(本機 Room)
-            local = withContext(Dispatchers.IO) {
-                db.posOrderDao().ordersSince(deviceStore.storeId, 0L).take(50)
+            localAll = withContext(Dispatchers.IO) {
+                db.posOrderDao().ordersSince(deviceStore.storeId, 0L)
             }
-            findViewById<TextView>(R.id.txtLocalHint).text = "最近 ${local.size} 單"
-            localAdapter.notifyDataSetChanged()
 
-            val onlineCount = online.size
-            findViewById<TextView>(R.id.txtHint).text = "線上 $onlineCount · 線下 ${local.size}"
+            applyDateFilter()
         }
     }
 

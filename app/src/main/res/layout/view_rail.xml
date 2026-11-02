@@ -12,7 +12,7 @@
     <!-- POS 標記 -->
     <TextView
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="40dp"
         android:background="@drawable/bg_rail_active"
         android:gravity="center"
         android:text="POS"
@@ -30,11 +30,11 @@
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="點"
@@ -45,7 +45,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="點餐"
             android:textColor="@color/rail_text"
@@ -57,15 +57,15 @@
         android:id="@+id/railOrders"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="單"
@@ -76,7 +76,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="訂單"
             android:textColor="@color/rail_text"
@@ -88,15 +88,15 @@
         android:id="@+id/railDelivery"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="送"
@@ -107,7 +107,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="外送"
             android:textColor="@color/rail_text"
@@ -119,15 +119,15 @@
         android:id="@+id/railMember"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="會"
@@ -138,7 +138,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="會員"
             android:textColor="@color/rail_text"
@@ -150,15 +150,15 @@
         android:id="@+id/railPrint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="印"
@@ -169,7 +169,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="打印"
             android:textColor="@color/rail_text"
@@ -181,15 +181,15 @@
         android:id="@+id/railReport"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="報"
@@ -200,7 +200,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="報表"
             android:textColor="@color/rail_text"
@@ -212,15 +212,15 @@
         android:id="@+id/railSoldout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="沽"
@@ -231,7 +231,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="沽清"
             android:textColor="@color/rail_text"
@@ -243,15 +243,15 @@
         android:id="@+id/railShift"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="班"
@@ -262,7 +262,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="交班"
             android:textColor="@color/rail_text"
@@ -274,15 +274,15 @@
         android:id="@+id/railInventory"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingVertical="10dp">
+        android:paddingVertical="6dp">
 
         <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:background="@drawable/bg_rail_icon"
             android:gravity="center"
             android:text="庫"
@@ -293,7 +293,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="庫存"
             android:textColor="@color/rail_text"
@@ -311,7 +311,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center_horizontal"
         android:orientation="vertical"
@@ -344,8 +344,8 @@
     <TextView
         android:id="@+id/railOnline"
         android:layout_width="match_parent"
-        android:layout_height="34dp"
-        android:layout_marginTop="6dp"
+        android:layout_height="28dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center"
         android:text="在線"
@@ -356,12 +356,24 @@
     <TextView
         android:id="@+id/railLogout"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="8dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="4dp"
         android:background="@drawable/bg_rail_item"
         android:gravity="center"
         android:text="登出"
+        android:textColor="@color/rail_text"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/railSettings"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_rail_item"
+        android:gravity="center"
+        android:text="設置"
         android:textColor="@color/rail_text"
         android:textSize="10sp"
         android:textStyle="bold" />

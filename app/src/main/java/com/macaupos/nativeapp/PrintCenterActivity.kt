@@ -1,5 +1,6 @@
 package com.macaupos.nativeapp
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -25,8 +26,24 @@ import kotlinx.coroutines.withContext
 class PrintCenterActivity : ComponentActivity() {
 
     private lateinit var client: PrintJobsClient
+    private var jobsAll: List<PrintJobsClient.Job> = emptyList()
     private var jobs: List<PrintJobsClient.Job> = emptyList()
     private lateinit var adapter: Adapter
+    private var statusFilter = "all"
+
+    private val TABS = listOf(
+        "records" to "打印記錄",
+        "receipt-template" to "收據模板",
+        "label-template" to "標籤模板",
+        "kitchen-template" to "廚房模板",
+        "shift-template" to "交班模板",
+        "kiosk-template" to "自助點餐機",
+    )
+    private val STATUS_FILTERS = listOf(
+        "all" to "全部", "sent" to "已發送", "printed" to "打印成功",
+        "pending" to "待補傳", "failed" to "失敗",
+    )
+    private var activeTab = "records"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,8 +59,96 @@ class PrintCenterActivity : ComponentActivity() {
             layoutManager = LinearLayoutManager(this@PrintCenterActivity)
             adapter = this@PrintCenterActivity.adapter
         }
+
+        findViewById<Button>(R.id.btnOpenTemplates).setOnClickListener {
+            startActivity(Intent(this, PrintTemplatesActivity::class.java))
+        }
+
+        renderTabs()
+        renderStatusFilters()
         load()
     }
+
+    private fun renderTabs() {
+        val bar = findViewById<android.widget.LinearLayout>(R.id.chipsTabs)
+        bar.removeAllViews()
+        TABS.forEach { (key, label) ->
+            val selected = key == activeTab
+            val tv = TextView(this).apply {
+                text = label
+                minHeight = dp(36)
+                gravity = android.view.Gravity.CENTER
+                setPadding(dp(14), dp(6), dp(14), dp(6))
+                textSize = 12f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.slate_700))
+                background = getDrawable(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener { setTab(key) }
+            }
+            val lp = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.marginEnd = dp(6)
+            bar.addView(tv, lp)
+        }
+    }
+
+    private fun renderStatusFilters() {
+        val bar = findViewById<android.widget.LinearLayout>(R.id.chipsStatus)
+        bar.removeAllViews()
+        STATUS_FILTERS.forEach { (key, label) ->
+            val selected = key == statusFilter
+            val tv = TextView(this).apply {
+                text = label
+                minHeight = dp(32)
+                gravity = android.view.Gravity.CENTER
+                setPadding(dp(12), dp(5), dp(12), dp(5))
+                textSize = 11f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.slate_700))
+                background = getDrawable(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    statusFilter = key
+                    renderStatusFilters()
+                    applyStatusFilter()
+                }
+            }
+            val lp = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.marginEnd = dp(6)
+            bar.addView(tv, lp)
+        }
+    }
+
+    private fun setTab(key: String) {
+        activeTab = key
+        renderTabs()
+        val isRecords = key == "records"
+        findViewById<android.widget.LinearLayout>(R.id.panelRecords).visibility =
+            if (isRecords) View.VISIBLE else View.GONE
+        findViewById<android.widget.LinearLayout>(R.id.panelTemplates).visibility =
+            if (isRecords) View.GONE else View.VISIBLE
+        if (!isRecords) {
+            findViewById<TextView>(R.id.txtTemplatePlaceholder).text =
+                "「$key」模板編輯功能喺原生版以簡化方式提供,完整編輯請用 web 版"
+        }
+    }
+
+    private fun applyStatusFilter() {
+        jobs = when (statusFilter) {
+            "sent" -> jobsAll.filter { it.status == "sent" }
+            "printed" -> jobsAll.filter { it.status == "printed" }
+            "pending" -> jobsAll.filter { it.status == "pending" }
+            "failed" -> jobsAll.filter { it.status == "failed" }
+            else -> jobsAll
+        }
+        adapter.notifyDataSetChanged()
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun load() {
         findViewById<TextView>(R.id.txtHint).text = "載入中…"
@@ -51,12 +156,12 @@ class PrintCenterActivity : ComponentActivity() {
             val r = withContext(Dispatchers.IO) { client.list() }
             when (r) {
                 is PrintJobsClient.Result.Ok -> {
-                    jobs = r.jobs
-                    val failed = jobs.count { it.status == "failed" }
+                    jobsAll = r.jobs
+                    applyStatusFilter()
+                    val failed = jobsAll.count { it.status == "failed" }
                     findViewById<TextView>(R.id.txtHint).text =
-                        if (jobs.isEmpty()) "最近冇打印任務"
-                        else "共 ${jobs.size} 個任務 · 失敗 $failed 個"
-                    adapter.notifyDataSetChanged()
+                        if (jobsAll.isEmpty()) "最近冇打印任務"
+                        else "共 ${jobsAll.size} 個任務 · 失敗 $failed 個"
                 }
                 is PrintJobsClient.Result.Offline ->
                     findViewById<TextView>(R.id.txtHint).text = "離線:載入唔到打印任務"

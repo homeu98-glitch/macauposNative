@@ -103,6 +103,9 @@ object RailNav {
         click(activity, R.id.railOnline) {
             Toast.makeText(activity, "在線 · 網絡正常", Toast.LENGTH_SHORT).show()
         }
+        click(activity, R.id.railSettings) {
+            activity.startActivity(Intent(activity, SettingsActivity::class.java).putExtra("railActive", "settings"))
+        }
         click(activity, R.id.railLogout) {
             JsonStore(activity, "offline-credential.json").clear()
             activity.finishAffinity()
@@ -125,13 +128,14 @@ object RailNav {
             "soldout" to R.id.railSoldout,
             "shift" to R.id.railShift,
             "inventory" to R.id.railInventory,
+            "settings" to R.id.railSettings,
         )
         map.forEach { (key, id) ->
-            val container = activity.findViewById<ViewGroup>(id) ?: return@forEach
+            val view = activity.findViewById<View>(id) ?: return@forEach
             val on = key == active
-            container.setBackgroundResource(if (on) R.drawable.bg_rail_active else R.drawable.bg_rail_item)
+            view.setBackgroundResource(if (on) R.drawable.bg_rail_active else R.drawable.bg_rail_item)
             // 子 TextView 文字色:選中白、未選 slate-200
-            recolor(container, if (on) R.color.rail_text_active else R.color.rail_text)
+            recolor(view, if (on) R.color.rail_text_active else R.color.rail_text)
         }
     }
 

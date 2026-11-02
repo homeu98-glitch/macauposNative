@@ -137,5 +137,11 @@
             android:name=".InventoryActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- 設置(/settings = web device-settings):12 tab -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

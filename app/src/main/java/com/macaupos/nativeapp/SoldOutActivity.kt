@@ -44,6 +44,7 @@ class SoldOutActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_soldout)
+        RailNav.attach(this)
         db = AppDatabase.get(this)
         store = SoldOutStore(this)
         deviceStore = DeviceStore(this)

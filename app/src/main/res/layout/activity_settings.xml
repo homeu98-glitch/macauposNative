@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 設置(/settings = web device-settings):12 tab 對齊 web -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_screen"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:id="@+id/btnBack"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:gravity="center"
+            android:text="‹"
+            android:textColor="@color/text_primary"
+            android:textSize="26sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="設置"
+                android:textColor="@color/slate_900"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text="打印機 · 菜單 · 桌台 · 支付 · 接單等設定"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btnBackToPos"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_btn_accent"
+            android:gravity="center"
+            android:paddingHorizontal="14dp"
+            android:text="返回收銀台"
+            android:textColor="@color/btn_text_on_accent"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 12 個 tab chips -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/chipsTabs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp"
+            android:paddingBottom="8dp" />
+    </HorizontalScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/card_border" />
+
+    <!-- 狀態欄 -->
+    <TextView
+        android:id="@+id/txtStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:background="@drawable/bg_card"
+        android:padding="12dp"
+        android:text=""
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp" />
+
+    <!-- tab 內容容器 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/panelContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp" />
+    </ScrollView>
+</LinearLayout>
