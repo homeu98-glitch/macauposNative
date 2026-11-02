@@ -103,9 +103,158 @@ class SettingsActivity : ComponentActivity() {
 
     // ---- 打印機 ----
 
+    private var deviceSubTab = "zones"  // zones / printers
+
     private fun renderDevice(panel: LinearLayout, status: TextView) {
+        status.text = "打印機綁定：支援自定義分區、唯一收據打印機，以及綁定分區的標籤機。"
+
+        // 子 tab:打印分區 / 打印機列表
+        val subRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf("zones" to "打印分區", "printers" to "打印機列表").forEach { (key, label) ->
+            val tv = TextView(this).apply {
+                text = label
+                minHeight = dp(34)
+                gravity = Gravity.CENTER
+                setPadding(dp(14), dp(6), dp(14), dp(6))
+                textSize = 12f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                val on = deviceSubTab == key
+                setTextColor(getColor(if (on) R.color.card else R.color.slate_700))
+                background = getDrawable(if (on) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    deviceSubTab = key
+                    renderTab()
+                }
+            }
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            lp.marginEnd = dp(6)
+            subRow.addView(tv, lp)
+        }
+        panel.addView(subRow)
+
+        if (deviceSubTab == "zones") renderZones(panel) else renderPrinterList(panel)
+    }
+
+    // ---- 打印分區 ----
+
+    private fun zoneStore() = JsonStore(this, "print-zones.json")
+
+    private fun readZones(): MutableList<Pair<String, String>> {
+        val arr = zoneStore().read()?.optJSONArray("zones")
+        val list = mutableListOf<Pair<String, String>>()
+        if (arr != null) {
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                list.add(o.optString("id") to o.optString("name"))
+            }
+        }
+        if (list.isEmpty()) {
+            list.add("kitchen" to "廚房")
+            list.add("bar" to "水吧")
+        }
+        return list
+    }
+
+    private fun writeZones(zones: List<Pair<String, String>>) {
+        val arr = org.json.JSONArray()
+        zones.forEach { (id, name) ->
+            arr.put(org.json.JSONObject().put("id", id).put("name", name))
+        }
+        zoneStore().write(org.json.JSONObject().put("zones", arr))
+    }
+
+    private fun renderZones(panel: LinearLayout) {
+        val zones = readZones()
+        addLabel(panel, "打印分區")
+        panel.addView(TextView(this).apply {
+            text = "分區可自由新增，例如：廚房、水吧、甜品、燒味。"
+            textSize = 12f
+            setTextColor(getColor(R.color.text_secondary))
+            setPadding(0, dp(4), 0, dp(8))
+        })
+
+        zones.forEach { (id, name) ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(4), 0, dp(4))
+            }
+            val e = EditText(this).apply {
+                setText(name)
+                setSingleLine(true)
+                setPadding(dp(12), dp(8), dp(12), dp(8))
+                textSize = 14f
+            }
+            row.addView(e, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            val del = TextView(this).apply {
+                text = "刪除"
+                minHeight = dp(36)
+                gravity = Gravity.CENTER
+                setPadding(dp(12), dp(6), dp(12), dp(6))
+                textSize = 12f
+                setTextColor(getColor(R.color.text_primary))
+                background = getDrawable(R.drawable.bg_btn_outline)
+                setOnClickListener {
+                    val next = zones.filter { it.first != id }
+                    writeZones(if (next.isEmpty()) listOf("kitchen" to "廚房") else next)
+                    renderTab()
+                    Toast.makeText(this@SettingsActivity, "已刪除打印分區", Toast.LENGTH_SHORT).show()
+                }
+            }
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            lp.marginStart = dp(8)
+            row.addView(del, lp)
+            panel.addView(row)
+            // 改名即存
+            e.setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) {
+                    val next = zones.map { if (it.first == id) it.first to e.text.toString().trim() else it }
+                    writeZones(next)
+                }
+            }
+        }
+
+        // 新增分區
+        addLabel(panel, "新增分區")
+        val newZone = EditText(this).apply {
+            hint = "新增分區，例如：甜品"
+            setSingleLine(true)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }
+        panel.addView(newZone, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        addButton(panel, "新增分區") {
+            val text = newZone.text.toString().trim()
+            if (text.isNotEmpty()) {
+                val next = zones + ("${text.lowercase().replace(" ", "-")}-${System.currentTimeMillis()}" to text)
+                writeZones(next)
+                renderTab()
+                Toast.makeText(this, "已新增打印分區", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // ---- 打印機列表 ----
+
+    private fun renderPrinterList(panel: LinearLayout) {
         val store = PrinterStore(this)
-        status.text = "打印機綁定：設定 LAN 打印機 IP／藍牙／紙寬，收據同廚房單會送到呢部機。"
+
+        // 交班單打印機
+        addLabel(panel, "交班單打印機")
+        panel.addView(TextView(this).apply {
+            text = "指定結數交班明細由邊台打印機出紙；唔揀 = 跟隨收據打印機。"
+            textSize = 11f
+            setTextColor(getColor(R.color.text_secondary))
+            setPadding(0, dp(2), 0, dp(8))
+        })
+
+        // 打印機卡片(主打印機)
+        addLabel(panel, "打印機")
+        panel.addView(TextView(this).apply {
+            text = "名稱 / IP / 端口 / 紙寬 / 啟用"
+            textSize = 11f
+            setTextColor(getColor(R.color.text_faint))
+            setPadding(0, dp(2), 0, dp(8))
+        })
 
         fun field(label: String, value: String, hint: String): EditText {
             addLabel(panel, label)
@@ -114,6 +263,7 @@ class SettingsActivity : ComponentActivity() {
                 setHint(hint)
                 setSingleLine(true)
                 setPadding(dp(12), dp(8), dp(12), dp(8))
+                textSize = 14f
             }
             panel.addView(e, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             return e
@@ -155,10 +305,10 @@ class SettingsActivity : ComponentActivity() {
             store.port = portField.text.toString().trim().toIntOrNull() ?: 9100
             store.btAddress = btField.text.toString().trim()
             Toast.makeText(this, "已保存打印機設定", Toast.LENGTH_SHORT).show()
-            status.text = "已保存。可以返收銀台測試打印。"
         }
 
-        addButton(panel, "開啟打印機精靈（LAN 掃描／測試打印）") {
+        // 添加打印機
+        addButton(panel, "+ 添加打印機（LAN 掃描／藍牙配對）") {
             startActivity(Intent(this, PrinterWizardActivity::class.java))
         }
     }

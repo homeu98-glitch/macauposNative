@@ -86,6 +86,59 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** 放示範數據:假訂單(已結帳/開放) + 沽清 + 交班歷史,俾 cap 圖對比按鈕位置。 */
+    private suspend fun seedDemoData(storeId: String) {
+        val now = System.currentTimeMillis()
+        val dayMs = 24 * 60 * 60 * 1000L
+        val db = com.macaupos.nativeapp.data.db.AppDatabase.get(this)
+
+        fun items(name: String, price: Double, qty: Int) = org.json.JSONArray()
+            .put(org.json.JSONObject().put("name", name).put("price", price).put("quantity", qty))
+            .toString()
+
+        fun order(
+            no: String, status: String, table: String?, pay: String?,
+            sub: Double, total: Double, settled: Long?, created: Long,
+        ) = com.macaupos.nativeapp.data.db.PosOrderEntity(
+            id = "staff-$no", storeId = storeId, localOrderNo = no,
+            tableId = null, tableName = table, status = status,
+            fulfillmentStatus = "dine_in", sentToKitchenAt = created,
+            items = items("大麥克牛肉麵", 100.0, 1), orderNote = null,
+            subtotal = sub, taxAmount = 0.0, serviceChargeAmount = 0.0,
+            discountAmount = 0.0, total = total, source = "pos",
+            paymentMethod = pay, partySize = null, settledAt = settled,
+            receivedAmount = if (settled != null) total else null,
+            changeDue = if (settled != null) 0.0 else null,
+            createdAt = created, updatedAt = created, clientUpdatedAt = created,
+            syncState = "synced",
+        )
+
+        // 已結帳單(今日):3 張
+        val today = now - 2 * 3600_000
+        db.posOrderDao().upsert(order("60000001", "settled", "A01", "現金", 100.0, 100.0, today, today))
+        db.posOrderDao().upsert(order("60000002", "settled", "A02", "Mpay", 75.0, 75.0, today, today))
+        db.posOrderDao().upsert(order("60000003", "settled", "B01", "現金", 85.0, 85.0, today, today))
+        // 開放單(未結帳):2 張
+        db.posOrderDao().upsert(order("60000004", "sent_to_kitchen", "A01", null, 95.0, 95.0, null, now - 3600_000))
+        db.posOrderDao().upsert(order("60000005", "sent_to_kitchen", "A03", null, 60.0, 60.0, null, now - 1800_000))
+        // 舊單(昨日,供日期 filter 用)
+        db.posOrderDao().upsert(order("60000006", "settled", "A01", "現金", 100.0, 100.0, now - dayMs, now - dayMs))
+
+        // 沽清:其中兩道菜售罄/只剩 3 份
+        val soldOutStore = com.macaupos.nativeapp.data.SoldOutStore(this)
+        soldOutStore.setSoldOut("m4", true)
+        soldOutStore.setRemaining("m2", 3, 20)
+
+        // 交班歷史:2 筆
+        val histStore = com.macaupos.nativeapp.data.JsonStore(this, "shift-history.json")
+        val arr = org.json.JSONArray()
+        arr.put(org.json.JSONObject().put("revenue", 520.0).put("orderCount", 6)
+            .put("closedLocallyAt", now - dayMs).put("employee", "石廚工"))
+        arr.put(org.json.JSONObject().put("revenue", 310.0).put("orderCount", 4)
+            .put("closedLocallyAt", now - 2 * dayMs).put("employee", "石廚工"))
+        histStore.write(org.json.JSONObject().put("records", arr))
+    }
+
     /** 寫入示範 bootstrap 快取(對齊 J 截圖菜單),然後開落單頁。 */
     private fun seedDemoAndPreview() {
         lifecycleScope.launch {
@@ -142,6 +195,9 @@ class MainActivity : ComponentActivity() {
                                 fetchedAt = System.currentTimeMillis(),
                             )
                         )
+
+                    // ── 放示範數據:假訂單 / 沽清 / 交班歷史,方便 cap 圖對比按鈕位置 ──
+                    seedDemoData(storeId)
                 }
                 // debug:入工作台選擇(唔使帳號),再揀堂食/快餐/後廚屏
                 startActivity(

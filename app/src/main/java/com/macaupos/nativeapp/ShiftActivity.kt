@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.macaupos.nativeapp.data.DeviceStore
+import com.macaupos.nativeapp.data.JsonStore
 import com.macaupos.nativeapp.data.db.AppDatabase
 import com.macaupos.nativeapp.data.repo.ShiftClient
 import kotlinx.coroutines.Dispatchers
@@ -73,35 +74,46 @@ class ShiftActivity : ComponentActivity() {
             settledCount = summary.second
             breakdown = summary.third
 
+            // 應收(未扣優惠前嘅原價)= subtotal 加總;實收=total 加總
+            val receivable = withContext(Dispatchers.IO) {
+                val start = dayStartMs()
+                db.posOrderDao().ordersSince(deviceStore.storeId, start)
+                    .filter { it.status == "settled" }.sumOf { it.subtotal }
+            }
+
             val result = withContext(Dispatchers.IO) { client.activeShift() }
             when (result) {
-                is ShiftClient.Result.Ok -> {
-                    active = result.active
-                    render(result.active)
-                }
-                is ShiftClient.Result.Offline -> {
-                    render(active) // 保留上次已知;離線唔可以亂開新班
-                    findViewById<TextView>(R.id.txtShiftSub).text = "離線:睇唔到最新班次狀態,恢復網絡再試"
-                }
-                is ShiftClient.Result.Fail -> {
-                    render(active)
-                    findViewById<TextView>(R.id.txtShiftSub).text = "讀取班次失敗:${result.error}"
-                }
+                is ShiftClient.Result.Ok -> active = result.active
+                is ShiftClient.Result.Offline -> Unit // 保留上次已知
+                is ShiftClient.Result.Fail -> Unit
+            }
+
+            withContext(Dispatchers.Main) {
+                findViewById<TextView>(R.id.txtRevenue).text = money(revenue)
+                findViewById<TextView>(R.id.txtReceivable).text = money(receivable)
+                findViewById<TextView>(R.id.txtOrderCount).text = settledCount.toString()
+                findViewById<TextView>(R.id.txtReceivableSub).text =
+                    "未扣優惠前嘅原價 · 折扣 ${money(receivable - revenue)}"
+                render(active)
+                renderHistory()
             }
         }
     }
 
-    private fun render(shift: ShiftClient.Shift?) {
-        val currency = "MOP"
-        findViewById<TextView>(R.id.txtRevenue).text = String.format(Locale.US, "%s %.2f", currency, revenue)
-        findViewById<TextView>(R.id.txtOrderCount).text = settledCount.toString()
+    private fun money(v: Double) = String.format(Locale.US, "MOP %.2f", v)
 
+    private fun dayStartMs(): Long = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    private fun render(shift: ShiftClient.Shift?) {
         val sb = StringBuilder()
         if (breakdown.isEmpty()) {
             sb.append("今日未有已結帳單")
         } else {
             breakdown.entries.sortedByDescending { it.value }.forEach { (method, amount) ->
-                sb.append("$method: ").append(String.format(Locale.US, "%s %.2f", currency, amount)).append("\n")
+                sb.append("$method: ").append(money(amount)).append("\n")
             }
         }
         findViewById<TextView>(R.id.txtBreakdown).text = sb.toString().trimEnd()
@@ -111,13 +123,15 @@ class ShiftActivity : ComponentActivity() {
         val txtSub = findViewById<TextView>(R.id.txtShiftSub)
         val btnOpen = findViewById<Button>(R.id.btnOpenShift)
         val btnClose = findViewById<Button>(R.id.btnCloseShift)
+        val boxNote = findViewById<android.widget.LinearLayout>(R.id.boxOpenNote)
 
         if (shift == null) {
             txtState.text = "未開工"
-            txtMeta.text = "今日未開工"
+            txtMeta.text = "未開工"
             txtSub.text = "未開工前唔可以開枱／落單(同 web 一致)"
             btnOpen.visibility = View.VISIBLE
             btnClose.visibility = View.GONE
+            boxNote.visibility = View.VISIBLE
         } else {
             val openedAt = parseIso(shift.openedAt)
             val hours = ((System.currentTimeMillis() - openedAt) / 3_600_000.0)
@@ -127,8 +141,48 @@ class ShiftActivity : ComponentActivity() {
             txtSub.text = String.format(Locale.US, "已開工 %.1f 小時 · 班次 %s", hours, shift.id.take(14))
             btnOpen.visibility = View.GONE
             btnClose.visibility = View.VISIBLE
+            boxNote.visibility = View.GONE
         }
     }
+
+    /** 交班歷史:讀本機保存嘅結班記錄(最近 60 次)。 */
+    private fun renderHistory() {
+        lifecycleScope.launch {
+            val history: org.json.JSONArray? = withContext(Dispatchers.IO) {
+                runCatching {
+                    JsonStore(this@ShiftActivity, "shift-history.json").read()?.optJSONArray("records")
+                }.getOrNull()
+            }
+            val box = findViewById<android.widget.LinearLayout>(R.id.boxHistory)
+            box.removeAllViews()
+            if (history == null || history.length() == 0) {
+                findViewById<TextView>(R.id.txtHistoryHint).text = "暫無交班歷史"
+                return@launch
+            }
+            findViewById<TextView>(R.id.txtHistoryHint).text =
+                "保留最近 ${history.length()} 次交班記錄（本機）"
+            val count = minOf(history.length(), 60)
+            for (i in 0 until count) {
+                val o = history.optJSONObject(i) ?: continue
+                val rev = o.optDouble("revenue", 0.0)
+                val n = o.optInt("orderCount", 0)
+                val closed = o.optLong("closedLocallyAt", 0L)
+                val emp = o.optString("employee", "店員")
+                val tv = TextView(this@ShiftActivity).apply {
+                    text = "${fmtDate(closed)} · $emp · ${money(rev)} · ${n}單"
+                    textSize = 12f
+                    setTextColor(getColor(R.color.text_primary))
+                    setPadding(0, dp(6), 0, dp(6))
+                }
+                box.addView(tv)
+            }
+        }
+    }
+
+    private fun fmtDate(ms: Long): String =
+        SimpleDateFormat("MM-dd HH:mm", Locale.US).format(Date(ms))
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun openShift() {
         val input = EditText(this).apply { hint = "開工備註(可選)" }
@@ -194,7 +248,10 @@ class ShiftActivity : ComponentActivity() {
                     when (r) {
                         is ShiftClient.Result.Ok -> {
                             active = null
+                            // 保存交班歷史(本機)
+                            withContext(Dispatchers.IO) { appendHistory() }
                             render(null)
+                            renderHistory()
                             Toast.makeText(this@ShiftActivity, "✓ 已結班", Toast.LENGTH_SHORT).show()
                         }
                         is ShiftClient.Result.Offline ->
@@ -206,6 +263,19 @@ class ShiftActivity : ComponentActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    /** 結班時追加一筆歷史記錄到本機 shift-history.json。 */
+    private fun appendHistory() {
+        val store = JsonStore(this, "shift-history.json")
+        val arr = store.read()?.optJSONArray("records") ?: org.json.JSONArray()
+        arr.put(JSONObject()
+            .put("revenue", revenue)
+            .put("orderCount", settledCount)
+            .put("closedLocallyAt", System.currentTimeMillis())
+            .put("employee", operatorName)
+        )
+        store.write(JSONObject().put("records", arr))
     }
 
     /** 今日已結帳單的營業額 / 單數 / 支付方式分佈(本機 Room)。 */

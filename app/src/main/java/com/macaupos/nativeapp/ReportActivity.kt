@@ -77,23 +77,71 @@ class ReportActivity : ComponentActivity() {
         }
         val stats = ReportStats.compute(inputs)
         val currency = "MOP"
+        fun money(v: Double) = String.format(Locale.US, "%s %.2f", currency, v)
 
-        findViewById<TextView>(R.id.txtRevenue).text = String.format(Locale.US, "%s %.2f", currency, stats.revenue)
+        // 應收 = subtotal 加總(未扣優惠前嘅原價);實收 = total 加總;淨營業額 = 實收 − 退款
+        val receivable = orders.filter { it.status == "settled" }.sumOf { it.subtotal }
+        val refundTotal = orders.filter { it.status == "refunded" || it.status == "partially_refunded" }.sumOf { it.total }
+        val net = stats.revenue - refundTotal
+
+        findViewById<TextView>(R.id.txtReceivable).text = money(receivable)
+        findViewById<TextView>(R.id.txtRevenue).text = money(stats.revenue)
+        findViewById<TextView>(R.id.txtNet).text = money(net)
+        findViewById<TextView>(R.id.txtRefund).text =
+            if (refundTotal > 0) "實收 − 退款 ${money(refundTotal)}" else "實收 − 退款（本期冇退款）"
         findViewById<TextView>(R.id.txtOrders).text = stats.orderCount.toString()
-        findViewById<TextView>(R.id.txtAvg).text = String.format(Locale.US, "%s %.2f", currency, stats.avgTicket)
+        findViewById<TextView>(R.id.txtAvg).text = money(stats.avgTicket)
 
-        findViewById<TextView>(R.id.txtPayments).text =
-            if (stats.byPayment.isEmpty()) "未有已結帳單"
-            else stats.byPayment.entries.joinToString("\n") { (m, v) ->
-                String.format(Locale.US, "%s: %s %.2f", m, currency, v)
+        // 支付方式分項表格(應收/實收/單數)
+        val box = findViewById<android.widget.LinearLayout>(R.id.boxPaymentRows)
+        box.removeAllViews()
+        val byMethod = LinkedHashMap<String, Triple<Double, Double, Int>>()
+        orders.filter { it.status == "settled" }.forEach { o ->
+            val m = o.paymentMethod?.ifBlank { "現金" } ?: "現金"
+            val cur = byMethod[m] ?: Triple(0.0, 0.0, 0)
+            byMethod[m] = Triple(cur.first + o.subtotal, cur.second + o.total, cur.third + 1)
+        }
+        if (byMethod.isEmpty()) {
+            box.addView(TextView(this).apply {
+                text = "未有已結帳單"
+                textSize = 12f
+                setTextColor(getColor(R.color.text_secondary))
+                setPadding(0, dp(8), 0, dp(8))
+            })
+        } else {
+            byMethod.entries.sortedByDescending { it.value.second }.forEach { (m, v) ->
+                box.addView(paymentRow(m, money(v.first), money(v.second), v.third.toString()))
             }
+        }
 
         findViewById<TextView>(R.id.txtTopItems).text =
             if (stats.topItems.isEmpty()) "未有已結帳單"
             else stats.topItems.mapIndexed { i, it ->
-                String.format(Locale.US, "%d. %s ×%d · %s %.2f", i + 1, it.name, it.quantity, currency, it.amount)
+                String.format(Locale.US, "%d. %s ×%d · %s", i + 1, it.name, it.quantity, money(it.amount))
             }.joinToString("\n")
     }
+
+    private fun paymentRow(method: String, receivable: String, received: String, count: String): android.view.View {
+        val row = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            setPadding(0, dp(8), 0, dp(8))
+        }
+        fun cell(text: String, weight: Float, end: Boolean = false): TextView {
+            return TextView(this).apply {
+                this.text = text
+                textSize = 12f
+                setTextColor(getColor(R.color.text_primary))
+                if (end) gravity = android.view.Gravity.END
+            }
+        }
+        row.addView(cell(method, 1.2f), android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1.2f))
+        row.addView(cell(receivable, 1f, true), android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(cell(received, 1f, true), android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(cell(count, 0.6f, true), android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 0.6f))
+        return row
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun parseLines(itemsJson: String): List<ReportStats.OrderLine> {
         val arr = runCatching { JSONArray(itemsJson) }.getOrNull() ?: return emptyList()

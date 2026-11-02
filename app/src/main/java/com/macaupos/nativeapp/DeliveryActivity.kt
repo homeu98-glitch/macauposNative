@@ -25,6 +25,13 @@ import kotlinx.coroutines.withContext
 class DeliveryActivity : ComponentActivity() {
 
     private lateinit var client: DeliveryClient
+    private var jobsAll: List<DeliveryClient.Job> = emptyList()
+    private var statusFilter = "all"
+
+    private val STATUS_FILTERS = listOf(
+        "all" to "全部", "new" to "待接單", "accepted" to "已接單",
+        "picked_up" to "配送中", "canceled" to "已取消", "failed" to "派送失敗",
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,8 +41,40 @@ class DeliveryActivity : ComponentActivity() {
 
         findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener { load() }
+        renderStatusFilters()
         load()
     }
+
+    private fun renderStatusFilters() {
+        val bar = findViewById<LinearLayout>(R.id.chipsStatus)
+        bar.removeAllViews()
+        STATUS_FILTERS.forEach { (key, label) ->
+            val selected = key == statusFilter
+            val tv = TextView(this).apply {
+                text = label
+                minHeight = dp(32)
+                gravity = android.view.Gravity.CENTER
+                setPadding(dp(12), dp(5), dp(12), dp(5))
+                textSize = 11f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.slate_700))
+                background = getDrawable(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    statusFilter = key
+                    renderStatusFilters()
+                    render(jobsAll)
+                }
+            }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.marginEnd = dp(6)
+            bar.addView(tv, lp)
+        }
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
     private fun load() {
         findViewById<TextView>(R.id.txtHint).text = "載入中…"
@@ -43,14 +82,14 @@ class DeliveryActivity : ComponentActivity() {
             val r = withContext(Dispatchers.IO) { client.board() }
             when (r) {
                 is DeliveryClient.Result.Ok -> {
-                    val jobs = r.board.jobs
+                    jobsAll = r.board.jobs
                     if (!r.board.tableReady) {
                         findViewById<TextView>(R.id.txtHint).text = "外送資料表未建立(請先跑 migration 0076)"
                     } else {
                         findViewById<TextView>(R.id.txtHint).text =
-                            "進行中 ${jobs.size} 單 · 手動刷新(同 web 一樣零 polling)"
+                            "進行中 ${jobsAll.size} 單 · 手動刷新(同 web 一樣零 polling)"
                     }
-                    render(jobs)
+                    render(jobsAll)
                 }
                 is DeliveryClient.Result.Offline ->
                     findViewById<TextView>(R.id.txtHint).text = "離線:載入唔到外送單"
@@ -65,6 +104,14 @@ class DeliveryActivity : ComponentActivity() {
         val acceptedCol = findViewById<LinearLayout>(R.id.colAccepted)
         val pickedCol = findViewById<LinearLayout>(R.id.colPickedUp)
         listOf(newCol, acceptedCol, pickedCol).forEach { it.removeAllViews() }
+
+        val filtered = if (statusFilter == "all") jobs else jobs.filter {
+            when (statusFilter) {
+                "new" -> it.status == "new" || it.status == "queued" || it.status == "draft"
+                "canceled" -> it.status == "cancelled"
+                else -> it.status == statusFilter
+            }
+        }
 
         fun add(col: LinearLayout, job: DeliveryClient.Job) {
             val card = LayoutInflater.from(this).inflate(R.layout.item_delivery_job, col, false)
@@ -81,10 +128,23 @@ class DeliveryActivity : ComponentActivity() {
             ).joinToString(" · ").ifBlank { "客戶資料未提供" }
             card.findViewById<TextView>(R.id.txtJobAddress).text =
                 job.customerAddress ?: job.note ?: "—"
+
+            // 車手費 / 代收 / 更新時間
+            val fee = String.format(java.util.Locale.US, "%.2f", job.feeAmountAvos / 100.0)
+            val feeText = buildString {
+                append("車手費 $fee")
+                append(if (job.feePaidBy == "customer") "（客人支付）" else "（商戶支付）")
+                if (job.codAmountAvos > 0) append(" · 代收 ${String.format(java.util.Locale.US, "%.2f", job.codAmountAvos / 100.0)}")
+            }
+            card.findViewById<TextView>(R.id.txtJobFee).text = feeText
+            card.findViewById<TextView>(R.id.txtJobUpdated).text = job.updatedAt ?: ""
+            card.findViewById<TextView>(R.id.txtJobDraftWarning).visibility =
+                if (job.status == "draft") View.VISIBLE else View.GONE
+
             col.addView(card)
         }
 
-        jobs.forEach { job ->
+        filtered.forEach { job ->
             when (job.status) {
                 "accepted" -> add(acceptedCol, job)
                 "picked_up" -> add(pickedCol, job)
@@ -106,11 +166,12 @@ class DeliveryActivity : ComponentActivity() {
     private fun statusLabel(status: String) = when (status) {
         "draft" -> "草稿"
         "queued" -> "排隊中"
-        "new" -> "新單"
-        "accepted" -> "已接"
+        "new" -> "待接單"
+        "accepted" -> "已接單"
         "picked_up" -> "配送中"
         "delivered" -> "已送達"
         "cancelled" -> "已取消"
+        "failed" -> "派送失敗"
         else -> status
     }
 }

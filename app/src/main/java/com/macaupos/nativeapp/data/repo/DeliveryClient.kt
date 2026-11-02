@@ -37,6 +37,12 @@ class DeliveryClient(private val deviceStore: DeviceStore) {
         val customerAddress: String?,
         val note: String?,
         val updatedAt: String?,
+        /** 車手費(avos,分) */
+        val feeAmountAvos: Int = 0,
+        /** 車手費由邊個付:"customer" 客人 / "merchant" 商戶 */
+        val feePaidBy: String? = null,
+        /** 代收款(avos,分) */
+        val codAmountAvos: Int = 0,
     )
 
     data class Board(val jobs: List<Job>, val tableReady: Boolean)
@@ -90,5 +96,8 @@ class DeliveryClient(private val deviceStore: DeviceStore) {
         customerAddress = o.optString("customer_address", "").takeIf { it.isNotBlank() },
         note = o.optString("note", "").takeIf { it.isNotBlank() },
         updatedAt = o.optString("updated_at", "").takeIf { it.isNotBlank() },
+        feeAmountAvos = o.optInt("fee_amount_avos", 0),
+        feePaidBy = o.optString("fee_paid_by", "").takeIf { it.isNotBlank() },
+        codAmountAvos = o.optInt("cod_amount_avos", 0),
     )
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 交班 —— web 風格:頂欄 + 班次卡 + 今日匯總卡 + 底部操作 -->
+<!-- 交班(/shift = web shift-page):header + 今日摘要 3 收入卡 + 交班歷史 + 開工/結班 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,6 +7,7 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
+    <!-- header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -14,7 +15,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="14dp"
-        android:paddingVertical="8dp">
+        android:paddingVertical="10dp">
 
         <TextView
             android:id="@+id/btnBack"
@@ -28,7 +29,6 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -41,12 +41,37 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/txtShiftState"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="未開工"
+                android:layout_marginTop="2dp"
+                android:text="開工 → 營業 → 結數交班。交班後會打印一張今日營業摘要。"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/txtShiftMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:text="未開工"
+                android:textColor="@color/slate_900"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtShiftSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -64,117 +89,266 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="14dp">
+            android:padding="12dp">
 
-            <!-- 班次卡 -->
+            <!-- 開工備註(未開工時顯示) -->
             <LinearLayout
+                android:id="@+id/boxOpenNote"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_card"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="12dp"
+                android:visibility="gone">
 
                 <TextView
-                    android:id="@+id/txtShiftMeta"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="今日未開工"
-                    android:textColor="@color/slate_900"
-                    android:textSize="16sp"
+                    android:text="開工備註（選填）"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/txtShiftSub"
+                <EditText
+                    android:id="@+id/inputOpenNote"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="未開工前唔可以開枱／落單(同 web 一致)"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
+                    android:hint="例如：今日人手安排／開店檢查"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_faint"
+                    android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- 今日匯總 -->
+            <!-- 狀態欄 -->
+            <TextView
+                android:id="@+id/txtShiftState"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_card"
+                android:padding="10dp"
+                android:text="開工後可於下班時做結數交班並打印交班單。"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <!-- 今日摘要標題 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="今日摘要"
+                android:textColor="@color/slate_900"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="店內堂食／快餐以本機 POS 為準；會員通線上以 Ledger 報表為準。"
+                android:textColor="@color/text_faint"
+                android:textSize="11sp" />
+
+            <!-- 3 張收入卡 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <!-- 已付支出 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="已付支出"
+                        android:textColor="@color/warn_red"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/txtExpense"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="—"
+                        android:textColor="@color/warn_red"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtExpenseSub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="今日暫無買貨收據"
+                        android:textColor="@color/text_faint"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="1dp" />
+
+                <!-- 應收金額合計 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="應收金額合計"
+                        android:textColor="@color/slate_700"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/txtReceivable"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="MOP 0.00"
+                        android:textColor="@color/slate_700"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtReceivableSub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="未扣優惠前嘅原價"
+                        android:textColor="@color/text_faint"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="8dp"
+                    android:layout_height="1dp" />
+
+                <!-- 實收金額合計 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="實收金額合計"
+                        android:textColor="@color/ok_green"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/txtRevenue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="MOP 0.00"
+                        android:textColor="@color/ok_green"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtRevenueSub"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="已結帳單實收"
+                        android:textColor="@color/text_faint"
+                        android:textSize="10sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 已結帳單數 + 支付方式分佈 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_card"
                 android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="今日匯總(本機)"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                android:padding="12dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
                     android:orientation="horizontal">
 
-                    <LinearLayout
+                    <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:text="已結帳單數"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="營業額"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp" />
-
-                        <TextView
-                            android:id="@+id/txtRevenue"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="MOP 0.00"
-                            android:textColor="@color/accent"
-                            android:textSize="24sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/txtOrderCount"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="已結帳單數"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp" />
-
-                        <TextView
-                            android:id="@+id/txtOrderCount"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0"
-                            android:textColor="@color/slate_900"
-                            android:textSize="24sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                        android:text="0"
+                        android:textColor="@color/slate_900"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
 
                 <TextView
                     android:id="@+id/txtBreakdown"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="8dp"
                     android:lineSpacingExtra="4dp"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
+
+            <!-- 交班歷史 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="交班歷史"
+                    android:textColor="@color/slate_900"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtHistoryHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="保留最近 60 次交班記錄"
+                    android:textColor="@color/text_faint"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:id="@+id/boxHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
+    <!-- 底部開工/結班按鈕 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -185,24 +359,24 @@
         <Button
             android:id="@+id/btnOpenShift"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:layout_weight="1"
             android:background="@drawable/bg_btn_accent"
             android:text="開工"
             android:textColor="@color/btn_text_on_accent"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnCloseShift"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:background="@drawable/bg_btn_dark"
-            android:text="結班"
+            android:text="結數交班並打印"
             android:textColor="@color/card"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

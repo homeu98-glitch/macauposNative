@@ -1,11 +1,14 @@
 package com.macaupos.nativeapp
 
-import android.app.AlertDialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -19,18 +22,18 @@ import com.macaupos.nativeapp.data.repo.BootstrapRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 
 /**
- * 沽清管理 —— 對齊 web 本機沽清語意(`pos-soldout-changed` + localStorage):
- * 每道菜可以「沽清」或者「設定剩餘份數」;落單頁讀同一份狀態,
- * 售罄菜唔可以加入、有剩餘會顯示「只剩 N 份」。
+ * 沽清(/soldout)—— 對齊 web `soldout-page`:
  *
- * (web 目前亦係本機狀態,`/api/inventory/soldout` 仲係 TODO stub —— 兩邊一致。)
+ * - 2 tab:菜品沽清 / 規格沽清
+ * - 菜品 tab:分類 chips + 分頁(每頁 20) + 表格(菜品/剩餘/設定數量/操作)
+ * - 每行:設定數量(input)、清除、直接售罄
+ * - 規格 tab:規格選項 checkbox 沽清(簡化:佔位)
  */
 class SoldOutActivity : ComponentActivity() {
 
-    data class Row(val id: String, val name: String, val price: Double)
+    data class Row(val id: String, val name: String, val price: Double, val categoryId: String?)
 
     private lateinit var db: AppDatabase
     private lateinit var store: SoldOutStore
@@ -38,8 +41,14 @@ class SoldOutActivity : ComponentActivity() {
     private lateinit var deviceStore: DeviceStore
 
     private var rows: List<Row> = emptyList()
+    private var categories: List<Pair<String, String>> = emptyList()
     private var states: Map<String, SoldOutStore.State> = emptyMap()
     private lateinit var adapter: Adapter
+
+    private var tab = "items"
+    private var categoryId = "all"
+    private var page = 1
+    private val pageSize = 20
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,14 +59,96 @@ class SoldOutActivity : ComponentActivity() {
         deviceStore = DeviceStore(this)
         bootstrapRepo = BootstrapRepository(applicationContext, db)
 
-        findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
+        findViewById<android.widget.Button>(R.id.btnSave).setOnClickListener {
+            findViewById<TextView>(R.id.txtStatus).text = "已保存沽清設定（本機）。"
+        }
 
         adapter = Adapter()
         findViewById<RecyclerView>(R.id.recyclerSoldOut).apply {
             layoutManager = LinearLayoutManager(this@SoldOutActivity)
             adapter = this@SoldOutActivity.adapter
         }
+
+        findViewById<TextView>(R.id.btnPrev).setOnClickListener {
+            if (page > 1) { page--; applyFilter() }
+        }
+        findViewById<TextView>(R.id.btnNext).setOnClickListener {
+            val totalPages = ((filteredRows().size + pageSize - 1) / pageSize).coerceAtLeast(1)
+            if (page < totalPages) { page++; applyFilter() }
+        }
+
+        renderTabs()
         load()
+    }
+
+    private fun renderTabs() {
+        val bar = findViewById<LinearLayout>(R.id.chipsTabs)
+        bar.removeAllViews()
+        listOf("items" to "菜品沽清", "specs" to "規格沽清").forEach { (key, label) ->
+            val selected = key == tab
+            val tv = TextView(this).apply {
+                text = label
+                minHeight = dp(36)
+                gravity = android.view.Gravity.CENTER
+                setPadding(dp(14), dp(6), dp(14), dp(6))
+                textSize = 12f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.slate_700))
+                background = getDrawable(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    tab = key
+                    renderTabs()
+                    findViewById<RecyclerView>(R.id.recyclerSoldOut).visibility =
+                        if (key == "items") View.VISIBLE else View.GONE
+                    findViewById<LinearLayout>(R.id.panelSpecs).visibility =
+                        if (key == "specs") View.VISIBLE else View.GONE
+                    findViewById<HorizontalScrollView>(R.id.scrollCategories).visibility =
+                        if (key == "items") View.VISIBLE else View.GONE
+                    findViewById<LinearLayout>(R.id.boxPaging).visibility =
+                        if (key == "items") View.VISIBLE else View.GONE
+                    findViewById<LinearLayout>(R.id.boxTableHead).visibility =
+                        if (key == "items") View.VISIBLE else View.GONE
+                }
+            }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.marginEnd = dp(6)
+            bar.addView(tv, lp)
+        }
+    }
+
+    private fun renderCategories() {
+        val bar = findViewById<LinearLayout>(R.id.chipsCategories)
+        bar.removeAllViews()
+        val items: List<Pair<String, String>> =
+            listOf("all" to "全部") + categories
+        items.forEach { (id, name) ->
+            val selected = id == categoryId
+            val tv = TextView(this).apply {
+                text = name
+                minHeight = dp(32)
+                gravity = android.view.Gravity.CENTER
+                setPadding(dp(12), dp(5), dp(12), dp(5))
+                textSize = 11f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.slate_700))
+                background = getDrawable(if (selected) R.drawable.bg_btn_dark else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    categoryId = id
+                    page = 1
+                    renderCategories()
+                    applyFilter()
+                }
+            }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            lp.marginEnd = dp(6)
+            bar.addView(tv, lp)
+        }
     }
 
     private fun load() {
@@ -76,112 +167,96 @@ class SoldOutActivity : ComponentActivity() {
                 (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }.mapNotNull { o ->
                     val id = o.optString("id", "").takeIf { it.isNotBlank() } ?: return@mapNotNull null
                     val name = o.optString("name", "").takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    Row(id, name, o.optDouble("price", 0.0))
+                    Row(id, name, o.optDouble("price", 0.0), o.optString("categoryId", "").takeIf { it.isNotBlank() })
                 }
+            }
+            categories = bs.categories.let { arr ->
+                (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }
+                    .map { it.optString("id", "") to it.optString("name", "") }
+                    .filter { it.first.isNotBlank() }
             }
             states = withContext(Dispatchers.IO) { store.all() }
-            findViewById<TextView>(R.id.txtHint).text =
-                "共 ${rows.size} 道菜 · 已沽清 ${states.count { it.value.soldOut }}"
-            adapter.notifyDataSetChanged()
+            renderCategories()
+            applyFilter()
         }
     }
 
-    private fun edit(row: Row) {
-        val cur = states[row.id]
-        val label = when {
-            cur == null -> "有貨"
-            cur.soldOut -> "售罄"
-            cur.remainingQty != null -> "只剩 ${cur.remainingQty} 份"
-            else -> "有貨"
-        }
-        AlertDialog.Builder(this)
-            .setTitle("${row.name} · $label")
-            .setItems(arrayOf("設定剩餘份數", "沽清", "恢復有貨", "清除設定")) { _, which ->
-                when (which) {
-                    0 -> setRemaining(row)
-                    1 -> {
-                        store.setSoldOut(row.id, true)
-                        reloadStates()
-                    }
-                    2 -> {
-                        store.setSoldOut(row.id, false)
-                        reloadStates()
-                    }
-                    3 -> {
-                        store.clearItem(row.id)
-                        reloadStates()
-                    }
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
+    private fun filteredRows(): List<Row> =
+        if (categoryId == "all") rows else rows.filter { it.categoryId == categoryId }
 
-    private fun setRemaining(row: Row) {
-        val input = EditText(this).apply {
-            hint = "剩幾份(0 = 售罄)"
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setText(states[row.id]?.remainingQty?.toString() ?: "")
-        }
-        AlertDialog.Builder(this)
-            .setTitle("${row.name} · 剩餘份數")
-            .setView(input)
-            .setPositiveButton("確定") { _, _ ->
-                val n = input.text.toString().trim().toIntOrNull()
-                if (n == null) {
-                    Toast.makeText(this, "請輸入數字", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                store.setRemaining(row.id, n, states[row.id]?.initialQty ?: n)
-                reloadStates()
-            }
-            .setNegativeButton("取消", null)
-            .show()
-    }
-
-    private fun reloadStates() {
-        states = store.all()
-        findViewById<TextView>(R.id.txtHint).text =
+    private fun applyFilter() {
+        val filtered = filteredRows()
+        val totalPages = ((filtered.size + pageSize - 1) / pageSize).coerceAtLeast(1)
+        page = page.coerceIn(1, totalPages)
+        val start = (page - 1) * pageSize
+        val end = minOf(start + pageSize, filtered.size)
+        val shown = if (start < filtered.size) filtered.subList(start, end) else emptyList()
+        adapter.submit(shown)
+        findViewById<TextView>(R.id.txtPageInfo).text =
+            "共 ${filtered.size} 個菜品 · 第 $page/$totalPages 頁（每頁 $pageSize）"
+        findViewById<TextView>(R.id.txtStatus).text =
             "共 ${rows.size} 道菜 · 已沽清 ${states.count { it.value.soldOut }}"
-        adapter.notifyDataSetChanged()
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    private fun setQty(row: Row, qty: Int) {
+        store.setRemaining(row.id, qty, states[row.id]?.initialQty ?: qty)
+        states = store.all()
+        applyFilter()
     }
 
     private inner class Adapter : RecyclerView.Adapter<Adapter.VH>() {
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
-            VH(LayoutInflater.from(parent.context).inflate(R.layout.item_soldout, parent, false))
+        private var shown: List<Row> = emptyList()
 
-        override fun getItemCount(): Int = rows.size
+        fun submit(l: List<Row>) {
+            shown = l
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
+            VH(LayoutInflater.from(parent.context).inflate(R.layout.item_soldout_row, parent, false))
+
+        override fun getItemCount(): Int = shown.size
 
         override fun onBindViewHolder(h: VH, pos: Int) {
-            val row = rows[pos]
+            val row = shown[pos]
             val st = states[row.id]
+            val remaining = st?.remainingQty
+            val isSoldOut = st?.soldOut == true || (remaining != null && remaining <= 0)
+
             h.txtName.text = row.name
-            h.txtPrice.text = String.format(Locale.US, "MOP%.2f", row.price)
-            when {
-                st?.soldOut == true -> {
-                    h.txtState.text = "售罄"
-                    h.txtState.setBackgroundResource(R.drawable.bg_badge_count)
-                    h.txtState.setTextColor(getColor(R.color.card))
-                }
-                st?.remainingQty != null -> {
-                    h.txtState.text = "只剩 ${st.remainingQty} 份"
-                    h.txtState.setBackgroundResource(R.drawable.bg_pill_light)
-                    h.txtState.setTextColor(getColor(R.color.orange_600))
-                }
-                else -> {
-                    h.txtState.text = "有貨"
-                    h.txtState.setBackgroundResource(R.drawable.bg_pill_light)
-                    h.txtState.setTextColor(getColor(R.color.ok_green))
+            h.txtSoldOutBadge.visibility = if (isSoldOut) View.VISIBLE else View.GONE
+            h.txtRemaining.text = remaining?.toString() ?: "--"
+            h.inputQty.setText(st?.initialQty?.toString() ?: "")
+
+            h.btnClear.setOnClickListener {
+                store.clearItem(row.id)
+                states = store.all()
+                h.inputQty.setText("")
+                applyFilter()
+            }
+            h.btnSoldOut.setOnClickListener {
+                store.setSoldOut(row.id, true)
+                states = store.all()
+                applyFilter()
+            }
+            h.inputQty.setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) {
+                    val n = h.inputQty.text.toString().trim().toIntOrNull()
+                    if (n != null) setQty(row, n)
                 }
             }
-            h.itemView.setOnClickListener { edit(row) }
         }
 
         inner class VH(v: View) : RecyclerView.ViewHolder(v) {
-            val txtName: TextView = v.findViewById(R.id.txtItemName)
-            val txtPrice: TextView = v.findViewById(R.id.txtItemPrice)
-            val txtState: TextView = v.findViewById(R.id.txtState)
+            val txtName: TextView = v.findViewById(R.id.txtName)
+            val txtSoldOutBadge: TextView = v.findViewById(R.id.txtSoldOutBadge)
+            val txtRemaining: TextView = v.findViewById(R.id.txtRemaining)
+            val inputQty: EditText = v.findViewById(R.id.inputQty)
+            val btnClear: TextView = v.findViewById(R.id.btnClear)
+            val btnSoldOut: TextView = v.findViewById(R.id.btnSoldOut)
         }
     }
 }

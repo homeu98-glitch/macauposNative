@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 沽清管理 —— 菜品清單 + 狀態 -->
+<!-- 沽清(/soldout = web soldout-page):2 tab + 分類 chips + 分頁 + 表格 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,6 +7,7 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
+    <!-- header:標題 + 保存 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -16,38 +17,171 @@
         android:paddingHorizontal="14dp"
         android:paddingVertical="8dp">
 
-        <TextView
-            android:id="@+id/btnBack"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:gravity="center"
-            android:text="‹"
-            android:textColor="@color/text_primary"
-            android:textSize="26sp" />
-
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="沽清 / 售罄"
+                android:text="沽清"
                 android:textColor="@color/slate_900"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/txtHint"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="點菜品設定剩餘份數或沽清(同 web 一樣存本機)"
+                android:layout_marginTop="2dp"
+                android:text="為菜品設定可售數量。下單後會自動扣減，扣到 0 會在點餐頁顯示售罄。"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_btn_accent"
+            android:paddingHorizontal="16dp"
+            android:text="保存"
+            android:textColor="@color/btn_text_on_accent"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 狀態欄 -->
+    <TextView
+        android:id="@+id/txtStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:background="@drawable/bg_card"
+        android:padding="10dp"
+        android:text=""
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp" />
+
+    <!-- 2 tab:菜品沽清 / 規格沽清 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp">
+
+        <LinearLayout
+            android:id="@+id/chipsTabs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </LinearLayout>
+
+    <!-- 分類 chips(菜品 tab 用) -->
+    <HorizontalScrollView
+        android:id="@+id/scrollCategories"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/chipsCategories"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="6dp" />
+    </HorizontalScrollView>
+
+    <!-- 分頁控制 -->
+    <LinearLayout
+        android:id="@+id/boxPaging"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="4dp">
+
+        <TextView
+            android:id="@+id/txtPageInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/btnPrev"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_btn_outline"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="上一頁"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/btnNext"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_btn_outline"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="下一頁"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- 表格頭 -->
+    <LinearLayout
+        android:id="@+id/boxTableHead"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="菜品"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="剩餘"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="設定數量"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:text="操作"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <View
@@ -55,10 +189,31 @@
         android:layout_height="1dp"
         android:background="@color/card_border" />
 
+    <!-- 表格內容 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerSoldOut"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:clipToPadding="false"
-        android:padding="10dp" />
+        android:paddingHorizontal="10dp" />
+
+    <!-- 規格 tab 佔位 -->
+    <LinearLayout
+        android:id="@+id/panelSpecs"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="24dp"
+            android:text="規格沽清：目前菜單冇規格資料時顯示空狀態。\n\n規格沽清功能喺原生版以簡化方式提供，完整功能請用 web 版。"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 </LinearLayout>
