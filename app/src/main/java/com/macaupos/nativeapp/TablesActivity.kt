@@ -46,6 +46,7 @@ class TablesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tables)
+        RailNav.attach(this)
 
         db = AppDatabase.get(this)
         bootstrapRepo = BootstrapRepository(applicationContext, db)

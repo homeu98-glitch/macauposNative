@@ -143,9 +143,9 @@ class MainActivity : ComponentActivity() {
                             )
                         )
                 }
-                // debug:入 Home(唔使帳號),再由 Home 撳「落單」睇餐牌
+                // debug:入工作台選擇(唔使帳號),再揀堂食/快餐/後廚屏
                 startActivity(
-                    Intent(this@MainActivity, HomeActivity::class.java)
+                    Intent(this@MainActivity, WorkbenchActivity::class.java)
                         .putExtra("operator", "預覽")
                         .putExtra("offline", true)
                 )
@@ -348,8 +348,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun goHome(offline: Boolean, name: String) {
+        // web 版:登入 → 揀工作台(冇「主頁儀表板」)
         startActivity(
-            Intent(this, HomeActivity::class.java)
+            Intent(this, WorkbenchActivity::class.java)
                 .putExtra("operator", name)
                 .putExtra("offline", offline)
         )

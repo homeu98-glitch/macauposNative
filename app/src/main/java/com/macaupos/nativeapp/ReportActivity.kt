@@ -34,6 +34,7 @@ class ReportActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_report)
+        RailNav.attach(this)
         db = AppDatabase.get(this)
         deviceStore = DeviceStore(this)
 

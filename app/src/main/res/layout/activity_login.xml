@@ -1,41 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 登入 —— web /login 淺色卡式風格 -->
+<!-- 登入 —— 對齊 web LoginScreen:深色漸變背景 + 玻璃卡 + 橙色主按鈕 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/bg_screen"
+    android:background="@drawable/bg_login_bg"
+    android:fitsSystemWindows="true"
     android:gravity="center"
-    android:padding="32dp">
+    android:orientation="vertical"
+    android:padding="24dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@drawable/bg_login_card"
         android:orientation="vertical"
-        android:background="@drawable/bg_card"
         android:padding="28dp">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Macau POS"
-            android:textColor="@color/text_primary"
+            android:gravity="center"
+            android:letterSpacing="0.18"
+            android:text="澳門會員通POS系統"
+            android:textColor="#FED7AA"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="登入"
+            android:textColor="@color/card"
             android:textSize="26sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/txtMode"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="店員終端登入"
-            android:textColor="@color/text_secondary"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="請輸入店舖帳號同 PIN"
+            android:textColor="#B3FFFFFF"
             android:textSize="13sp" />
 
         <TextView
             android:id="@+id/txtOfflineBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
             android:layout_marginTop="10dp"
             android:background="@drawable/bg_chip_selected"
             android:paddingHorizontal="12dp"
@@ -47,48 +61,54 @@
             android:visibility="gone" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="店舖帳號(8 位)"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="帳號(8 位數字)"
+            android:textColor="#B3FFFFFF"
+            android:textSize="12sp" />
 
         <EditText
             android:id="@+id/inputAccount"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="6dp"
-            android:background="@drawable/bg_btn_outline"
-            android:hint="例:12345678"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_login_input"
+            android:gravity="center"
+            android:hint="60000002"
             android:inputType="number"
+            android:letterSpacing="0.2"
             android:maxLength="8"
             android:paddingHorizontal="14dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_faint"
-            android:textSize="17sp" />
+            android:textColor="@color/card"
+            android:textColorHint="#66FFFFFF"
+            android:textSize="20sp" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="PIN(4 位)"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:gravity="center"
+            android:text="PIN(4 位數字)"
+            android:textColor="#B3FFFFFF"
+            android:textSize="12sp" />
 
         <EditText
             android:id="@+id/inputPin"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="6dp"
-            android:background="@drawable/bg_btn_outline"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_login_input"
+            android:gravity="center"
             android:hint="••••"
             android:inputType="numberPassword"
+            android:letterSpacing="0.4"
             android:maxLength="4"
             android:paddingHorizontal="14dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_faint"
-            android:textSize="20sp" />
+            android:textColor="@color/card"
+            android:textColorHint="#66FFFFFF"
+            android:textSize="22sp" />
 
         <Button
             android:id="@+id/btnLogin"
@@ -97,8 +117,8 @@
             android:layout_marginTop="24dp"
             android:background="@drawable/bg_btn_accent"
             android:text="登入"
-            android:textColor="@color/card"
-            android:textSize="18sp"
+            android:textColor="@color/btn_text_on_accent"
+            android:textSize="17sp"
             android:textStyle="bold" />
 
         <TextView
@@ -106,19 +126,21 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
+            android:gravity="center"
             android:minHeight="20dp"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:textColor="#B3FFFFFF"
+            android:textSize="12sp" />
 
         <!-- debug 專用:UI 預覽(示範餐牌),release 由代碼隱藏 -->
         <TextView
             android:id="@+id/txtDebugPreview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
             android:paddingVertical="6dp"
             android:text="UI 預覽(示範餐牌 · debug)"
-            android:textColor="@color/text_faint"
+            android:textColor="#66FFFFFF"
             android:textSize="11sp"
             android:visibility="gone" />
     </LinearLayout>

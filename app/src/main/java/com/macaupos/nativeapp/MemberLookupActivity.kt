@@ -30,6 +30,7 @@ class MemberLookupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_member_lookup)
+        RailNav.attach(this)
         deviceStore = DeviceStore(this)
         ledger = LedgerOrdersClient(deviceStore)
 

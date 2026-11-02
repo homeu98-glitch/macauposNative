@@ -29,6 +29,7 @@ class DeliveryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_delivery)
+        RailNav.attach(this)
         client = DeliveryClient(DeviceStore(this))
 
         findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }

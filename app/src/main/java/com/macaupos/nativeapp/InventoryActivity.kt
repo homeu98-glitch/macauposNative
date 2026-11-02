@@ -34,6 +34,7 @@ class InventoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_inventory)
+        RailNav.attach(this)
         client = InventoryClient(DeviceStore(this))
 
         findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }

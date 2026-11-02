@@ -31,6 +31,7 @@ class PrintCenterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_print_center)
+        RailNav.attach(this)
         client = PrintJobsClient(DeviceStore(this))
 
         findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }

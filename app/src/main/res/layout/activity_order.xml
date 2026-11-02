@@ -8,86 +8,8 @@
     android:fitsSystemWindows="true"
     android:background="@color/bg_screen">
 
-    <!-- ═══ 深色 icon 導軌 ═══ -->
-    <LinearLayout
-        android:layout_width="68dp"
-        android:layout_height="match_parent"
-        android:background="@color/rail_bg"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:paddingTop="10dp">
-
-        <TextView
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="@drawable/bg_rail_active"
-            android:gravity="center"
-            android:text="POS"
-            android:textColor="@color/card"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/railOrder"
-            android:layout_width="48dp"
-            android:layout_height="56dp"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_rail_active"
-            android:gravity="center"
-            android:lineSpacingExtra="2dp"
-            android:text="▤\n點餐"
-            android:textColor="@color/rail_text_active"
-            android:textSize="10sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/railTables"
-            android:layout_width="48dp"
-            android:layout_height="56dp"
-            android:layout_marginTop="6dp"
-            android:gravity="center"
-            android:lineSpacingExtra="2dp"
-            android:text="▦\n桌台"
-            android:textColor="@color/rail_text"
-            android:textSize="10sp" />
-
-        <TextView
-            android:id="@+id/railPrint"
-            android:layout_width="48dp"
-            android:layout_height="56dp"
-            android:layout_marginTop="6dp"
-            android:gravity="center"
-            android:lineSpacingExtra="2dp"
-            android:text="⎙\n打印"
-            android:textColor="@color/rail_text"
-            android:textSize="10sp" />
-
-        <Space
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <TextView
-            android:id="@+id/railOnline"
-            android:layout_width="48dp"
-            android:layout_height="44dp"
-            android:gravity="center"
-            android:text="在線"
-            android:textColor="@color/ok_green"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/railLogout"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
-            android:gravity="center"
-            android:text="登出"
-            android:textColor="@color/rail_text"
-            android:textSize="12sp" />
-    </LinearLayout>
+    <!-- 左側 rail(共用,view_rail.xml) -->
+    <include layout="@layout/view_rail" />
 
     <!-- ═══ 左欄:訂單明細 ═══ -->
     <LinearLayout

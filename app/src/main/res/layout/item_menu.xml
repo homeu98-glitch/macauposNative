@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_menu_card"
-        android:minHeight="124dp"
+        android:minHeight="104dp"
         android:orientation="vertical"
         android:padding="12dp">
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 登入背景(對齊 web login-animated-bg:深色漸變 + 紫/橙光暈) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#1B1330"
+                android:centerColor="#0F172A"
+                android:endColor="#0B1220"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="260dp"
+                android:startColor="#8C7C3AED"
+                android:endColor="#007C3AED" />
+        </shape>
+    </item>
+</layer-list>

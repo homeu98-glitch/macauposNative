@@ -39,6 +39,7 @@ class KdsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_kds)
+        RailNav.attach(this)
         client = KdsClient(DeviceStore(this))
         prefs = com.macaupos.nativeapp.data.JsonStore(this, "kds.json")
         station = prefs.read()?.optString("station", "")?.takeIf { it.isNotBlank() }

@@ -138,20 +138,8 @@ class OrderActivity : ComponentActivity() {
             adapter = cartAdapter
         }
 
-        // ── 左側深色導軌 ──
-        findViewById<TextView>(R.id.railTables).setOnClickListener {
-            startActivity(Intent(this, TablesActivity::class.java))
-        }
-        findViewById<TextView>(R.id.railPrint).setOnClickListener {
-            startActivity(Intent(this, PrinterWizardActivity::class.java))
-        }
-        findViewById<TextView>(R.id.railOnline).setOnClickListener {
-            Toast.makeText(this, "在線 · 網絡正常", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<TextView>(R.id.railLogout).setOnClickListener {
-            JsonStore(this, "offline-credential.json").clear()
-            finish()
-        }
+        // 左側 rail(共用元件)
+        RailNav.bind(this)
 
         btnDineIn.setOnClickListener { setFulfillment("dine_in") }
         btnTakeaway.setOnClickListener { setFulfillment("takeaway") }
