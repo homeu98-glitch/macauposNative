@@ -3,7 +3,9 @@ package com.macaupos.nativeapp.data.repo
 import com.macaupos.nativeapp.BuildConfig
 import com.macaupos.nativeapp.data.DeviceStore
 import okhttp3.OkHttpClient
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -74,6 +76,30 @@ class InventoryClient(private val deviceStore: DeviceStore) {
             }
         } catch (e: Exception) {
             Result.Offline
+        }
+    }
+
+    /**
+     * 盤點:設定新庫存量 —— 對齊 web `POST /api/inventory/products/[id]/adjust?store=`:
+     * body `{new_qty, reason}`(server 會寫異動紀錄)。
+     */
+    fun adjust(productId: String, newQty: Double, reason: String?): kotlin.Result<Unit> {
+        val storeId = deviceStore.storeId
+        if (storeId.isBlank()) return kotlin.Result.failure(IllegalStateException("未登入"))
+        val body = JSONObject().put("new_qty", newQty).put("reason", reason ?: "POS 盤點")
+        val req = Request.Builder()
+            .url("${BuildConfig.POS_URL}/api/inventory/products/$productId/adjust?store=$storeId")
+            .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        return try {
+            http.newCall(req).execute().use { resp ->
+                val text = resp.body?.string().orEmpty()
+                val obj = runCatching { JSONObject(text) }.getOrNull()
+                if (resp.code in 200..299 && obj?.optBoolean("ok", false) != false) kotlin.Result.success(Unit)
+                else kotlin.Result.failure(IllegalStateException(obj?.optString("error") ?: "HTTP ${resp.code}"))
+            }
+        } catch (e: Exception) {
+            kotlin.Result.failure(java.io.IOException("連唔到 server"))
         }
     }
 }

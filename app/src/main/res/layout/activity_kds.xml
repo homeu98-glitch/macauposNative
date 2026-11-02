@@ -76,6 +76,21 @@
         android:textSize="12sp"
         android:visibility="gone" />
 
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/chipsStation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="8dp" />
+    </HorizontalScrollView>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerKds"
         android:layout_width="match_parent"

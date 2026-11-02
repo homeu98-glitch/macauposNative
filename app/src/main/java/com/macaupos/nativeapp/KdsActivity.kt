@@ -30,11 +30,18 @@ class KdsActivity : ComponentActivity() {
     private lateinit var client: KdsClient
     private var orders: List<KdsClient.KdsOrder> = emptyList()
     private lateinit var adapter: Adapter
+    /** 目前工位(null = 全部);存本機,重開都記住 */
+    private var station: String? = null
+    private var stations: List<Triple<String, String, Int>> = emptyList()
+    private lateinit var prefs: com.macaupos.nativeapp.data.JsonStore
+    private var lastBoard: KdsClient.Board? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_kds)
         client = KdsClient(DeviceStore(this))
+        prefs = com.macaupos.nativeapp.data.JsonStore(this, "kds.json")
+        station = prefs.read()?.optString("station", "")?.takeIf { it.isNotBlank() }
 
         findViewById<TextView>(R.id.btnBack).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener { load() }
@@ -50,15 +57,18 @@ class KdsActivity : ComponentActivity() {
     private fun load() {
         findViewById<TextView>(R.id.txtHint).text = "載入中…"
         lifecycleScope.launch {
-            val r = withContext(Dispatchers.IO) { client.board() }
+            val r = withContext(Dispatchers.IO) { client.board(station) }
             when (r) {
                 is KdsClient.Result.Ok -> {
+                    lastBoard = r.board
+                    stations = r.board.stations
                     orders = r.board.orders
                     val pending = orders.sumOf { o -> o.items.sumOf { it.quantity - it.doneQty } }
                     findViewById<TextView>(R.id.txtHint).text =
                         "${orders.size} 張單 · 未完成 $pending 項"
                     findViewById<TextView>(R.id.txtDegraded).visibility =
                         if (r.board.degraded) View.VISIBLE else View.GONE
+                    renderStationChips()
                     adapter.notifyDataSetChanged()
                 }
                 is KdsClient.Result.Offline ->
@@ -66,6 +76,38 @@ class KdsActivity : ComponentActivity() {
                 is KdsClient.Result.Fail ->
                     findViewById<TextView>(R.id.txtHint).text = "載入失敗:${r.error}"
             }
+        }
+    }
+
+    /** 工位 chips:全部 + 各打印分區(顯示待處理數);選擇存本機。 */
+    private fun renderStationChips() {
+        val bar = findViewById<LinearLayout>(R.id.chipsStation)
+        bar.removeAllViews()
+        val entries: List<Triple<String?, String, Int>> =
+            listOf(Triple(null, "全部", orders.sumOf { o -> o.items.sumOf { it.quantity - it.doneQty } })) +
+                stations.map { Triple(it.first as String?, it.second, it.third) }
+        entries.forEach { (id, label, pending) ->
+            val selected = id == station
+            val tv = TextView(this).apply {
+                text = if (pending > 0) "$label $pending" else label
+                minHeight = 36
+                gravity = android.view.Gravity.CENTER
+                setPadding(28, 12, 28, 12)
+                textSize = 13f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setTextColor(getColor(if (selected) R.color.card else R.color.slate_700))
+                background = getDrawable(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip_normal)
+                setOnClickListener {
+                    station = id
+                    prefs.write(org.json.JSONObject().put("station", id ?: ""))
+                    load()
+                }
+            }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.marginEnd = 8
+            bar.addView(tv, lp)
         }
     }
 

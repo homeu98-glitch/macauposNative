@@ -47,7 +47,12 @@ class KdsClient(private val deviceStore: DeviceStore) {
         val items: List<KdsItem>,
     )
 
-    data class Board(val orders: List<KdsOrder>, val degraded: Boolean)
+    data class Board(
+        val orders: List<KdsOrder>,
+        val degraded: Boolean,
+        /** 可選工位:[(id, label, pending)] */
+        val stations: List<Triple<String, String, Int>> = emptyList(),
+    )
 
     sealed class Result {
         data class Ok(val board: Board) : Result()
@@ -55,11 +60,15 @@ class KdsClient(private val deviceStore: DeviceStore) {
         data class Fail(val error: String) : Result()
     }
 
-    fun board(): Result {
+    fun board(station: String? = null): Result {
         val storeId = deviceStore.storeId
         if (storeId.isBlank()) return Result.Fail("未登入(冇 storeId)")
+        val url = buildString {
+            append("${BuildConfig.POS_URL}/api/pos/kds/board?storeId=$storeId")
+            if (!station.isNullOrBlank()) append("&station=").append(station)
+        }
         val req = Request.Builder()
-            .url("${BuildConfig.POS_URL}/api/pos/kds/board?storeId=$storeId")
+            .url(url)
             .applyAuth()
             .get()
             .build()
@@ -118,7 +127,20 @@ class KdsClient(private val deviceStore: DeviceStore) {
                         )
                     )
                 }
-                Result.Ok(Board(list, obj.optString("degraded", "") == "kds_state_table_missing"))
+                Result.Ok(
+                    Board(
+                        orders = list,
+                        degraded = obj.optString("degraded", "") == "kds_state_table_missing",
+                        stations = obj.optJSONArray("stations")?.let { arr ->
+                            (0 until arr.length()).mapNotNull { i ->
+                                val s = arr.optJSONObject(i) ?: return@mapNotNull null
+                                val id = s.optString("id", "")
+                                if (id.isBlank()) null
+                                else Triple(id, s.optString("label", s.optString("name", id)), s.optInt("pending", 0))
+                            }
+                        } ?: emptyList(),
+                    )
+                )
             }
         } catch (e: Exception) {
             Result.Offline

@@ -80,6 +80,49 @@ class InventoryActivity : ComponentActivity() {
         adapter.notifyDataSetChanged()
     }
 
+    /** 盤點:設定新庫存量(對齊 web 庫存「盤點」)。 */
+    private fun adjust(p: InventoryClient.Product) {
+        val qty = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(String.format(Locale.US, "%.2f", p.currentQty))
+        }
+        val reason = EditText(this).apply { hint = "原因(可空,預設 POS 盤點)" }
+        val box = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 0)
+            addView(android.widget.TextView(this@InventoryActivity).apply {
+                text = "現存 ${p.currentQty} ${p.unit}"
+                setTextColor(getColor(R.color.text_secondary))
+                textSize = 12f
+            })
+            addView(qty)
+            addView(reason)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("盤點 · ${p.name}")
+            .setView(box)
+            .setPositiveButton("儲存") { _, _ ->
+                val v = qty.text.toString().trim().toDoubleOrNull()
+                if (v == null || v < 0) {
+                    android.widget.Toast.makeText(this, "請輸入有效數量", android.widget.Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch {
+                    val r = withContext(Dispatchers.IO) {
+                        client.adjust(p.id, v, reason.text.toString().trim().ifBlank { null })
+                    }
+                    r.onSuccess {
+                        android.widget.Toast.makeText(this@InventoryActivity, "✓ 已更新庫存", android.widget.Toast.LENGTH_SHORT).show()
+                        load()
+                    }.onFailure {
+                        android.widget.Toast.makeText(this@InventoryActivity, "失敗:${it.message}", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     private inner class Adapter : RecyclerView.Adapter<Adapter.VH>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
             VH(LayoutInflater.from(parent.context).inflate(R.layout.item_soldout, parent, false))
@@ -113,6 +156,7 @@ class InventoryActivity : ComponentActivity() {
                     h.txtState.setTextColor(getColor(R.color.ok_green))
                 }
             }
+            h.itemView.setOnClickListener { adjust(p) }
         }
 
         inner class VH(v: View) : RecyclerView.ViewHolder(v) {
